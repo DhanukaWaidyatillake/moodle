@@ -63,11 +63,15 @@ class cc112moodle extends cc2moodle {
     public function generate_moodle_xml() {
 
         global $CFG;
+        entities11::reset_file_path_map();
         $cdir = static::$path_to_manifest_folder . DIRECTORY_SEPARATOR . 'course_files';
 
         if (!file_exists($cdir)) {
             mkdir($cdir, $CFG->directorypermissions, true);
         }
+
+        $entities = new entities11();
+        $entities->prepare_file_path_map();
 
         $sheet_base = static::loadsheet(SHEET_BASE);
 
@@ -116,8 +120,6 @@ class cc112moodle extends cc2moodle {
         $result_xml = str_replace($find_tags, $replace_values, $sheet_base);
 
         // COPY RESOURSE FILES
-        $entities = new entities11();
-
         $entities->move_all_files();
 
         if (array_key_exists("index", self::$instances)) {

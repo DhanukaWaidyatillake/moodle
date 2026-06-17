@@ -118,6 +118,9 @@ class cc11_resource extends entities11 {
         $mod_type      = 'file';
         $mod_options   = 'objectframe';
         $mod_reference = $link;
+        if (!empty($link) && ($instance['common_cartriedge_type'] != cc112moodle::CC_TYPE_WEBLINK)) {
+            $mod_reference = $this->normalise_file_path($link);
+        }
         //detected if we are dealing with html file
         if (!empty($link) && ($instance['common_cartriedge_type'] == cc112moodle::CC_TYPE_WEBCONTENT)) {
             $ext = strtolower(pathinfo($link, PATHINFO_EXTENSION));
@@ -160,6 +163,7 @@ class cc11_resource extends entities11 {
                             if (($rtp !== false) && is_file($rtp)) {
                                 //file is there - we are in business
                                 $strip = str_replace("\\", "/", str_ireplace($rootpath, '', $rtp));
+                                $strip = $this->normalise_file_path($strip);
                                 $encoded_file = '$@FILEPHP@$'.str_replace('/', '$@SLASH@$', $strip);
                                 $searches[] = $resrc->nodeValue;
                                 $replaces[] = $encoded_file;
