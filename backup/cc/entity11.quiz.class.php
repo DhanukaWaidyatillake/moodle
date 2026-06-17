@@ -915,9 +915,10 @@ class cc11_quiz extends entities11 {
 
             // Identify the true and false answers.
             foreach ($question['answers'] as $answer) {
-                if ($answer['identifier'] == 'true') {
+                $answeridentifier = $this->get_true_false_answer_identifier($answer);
+                if ($answeridentifier == 'true') {
                     $trueanswer = $answer;
-                } else if ($answer['identifier'] == 'false') {
+                } else if ($answeridentifier == 'false') {
                     $falseanswer = $answer;
                 } else {
                     // Should not happen, but just in case.
@@ -946,6 +947,31 @@ class cc11_quiz extends entities11 {
         $node_question_categories_question = str_replace($find_tags, $replace_values, $sheet_question_categories_question);
 
         return $node_question_categories_question;
+    }
+
+    /**
+     * Gets the normalised true/false answer identifier.
+     *
+     * Some valid IMSCC packages use arbitrary answer identifiers and store the
+     * true/false value in the answer text. Keep supporting the literal
+     * identifiers first, and only fall back to the answer text when needed.
+     *
+     * @param array $answer answer data
+     * @return string the normalised identifier, or the original identifier if it cannot be normalised
+     */
+    private function get_true_false_answer_identifier($answer) {
+
+        $identifier = strtolower(trim($answer['identifier']));
+        if ($identifier == 'true' || $identifier == 'false') {
+            return $identifier;
+        }
+
+        $title = strtolower(trim(strip_tags($answer['title'])));
+        if ($title == 'true' || $title == 'false') {
+            return $title;
+        }
+
+        return $identifier;
     }
 
     private function get_answers_string($answers) {
