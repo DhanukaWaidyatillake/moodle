@@ -26,6 +26,34 @@ require_once($CFG->dirroot . '/backup/cc/entities.class.php');
 
 class entities11 extends entities {
 
+    /** @var array original IMSCC file paths mapped to Moodle-safe file paths */
+    protected static $filepaths = array();
+
+    /** @var array Moodle-safe file paths that have already been assigned */
+    protected static $usedfilepaths = array();
+
+    /**
+     * Resets the IMSCC file path map.
+     */
+    public static function reset_file_path_map() {
+        self::$filepaths = array();
+        self::$usedfilepaths = array();
+    }
+
+    /**
+     * Prepares file path mappings before Moodle XML references are generated.
+     */
+    public function prepare_file_path_map() {
+        $files = $this->get_all_files();
+        if (empty($files)) {
+            return;
+        }
+
+        foreach ($files as $file) {
+            $this->normalise_file_path($file);
+        }
+    }
+
     public function get_external_xml($identifier) {
         $xpath = cc2moodle::newx_path(cc112moodle::$manifest, cc112moodle::$namespaces);
         $files = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource[@identifier="' .
@@ -77,5 +105,41 @@ class entities11 extends entities {
         return $all_files;
     }
 
-}
+    /**
+     * Normalises IMSCC 1.1 file paths so later Moodle restore stages accept them.
+     *
+     * @param string $path file path
+     * @return string Moodle-safe file path
+     */
+    protected function normalise_file_path($path) {
+        $hasleadingslash = (substr($path, 0, 1) === '/');
+        $path = str_replace('\\', '/', ltrim($path, '/'));
 
+        if (isset(self::$filepaths[$path])) {
+            return $hasleadingslash ? '/' . self::$filepaths[$path] : self::$filepaths[$path];
+        }
+
+        $safe = clean_param($path, PARAM_PATH);
+        if ($safe === '') {
+            $safe = 'file';
+        }
+
+        $candidate = $safe;
+        $pathinfo = pathinfo($safe);
+        $dirname = ($pathinfo['dirname'] === '.') ? '' : $pathinfo['dirname'] . '/';
+        $filename = ($pathinfo['filename'] === '') ? 'file' : $pathinfo['filename'];
+        $extension = empty($pathinfo['extension']) ? '' : '.' . $pathinfo['extension'];
+        $counter = 1;
+
+        while (isset(self::$usedfilepaths[$candidate]) && self::$usedfilepaths[$candidate] !== $path) {
+            $candidate = $dirname . $filename . '-' . $counter . $extension;
+            $counter++;
+        }
+
+        self::$filepaths[$path] = $candidate;
+        self::$usedfilepaths[$candidate] = $path;
+
+        return $hasleadingslash ? '/' . $candidate : $candidate;
+    }
+
+}
