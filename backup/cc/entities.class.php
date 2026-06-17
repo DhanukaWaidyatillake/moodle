@@ -100,6 +100,7 @@ class entities {
                 if (empty($protocol)) {
                     $attribute_value = str_replace("\$IMS-CC-FILEBASE\$", "", $attribute_value);
                     $attribute_value = $this->full_path($root_path . "/" . $attribute_value, "/");
+                    $attribute_value = $this->normalise_file_path($attribute_value);
                     $attribute_value = "\$@FILEPHP@\$" . "/" . $attribute_value;
                 }
 
@@ -154,6 +155,16 @@ class entities {
         return $result;
     }
 
+    /**
+     * Normalises a file path before it is written to Moodle backup XML.
+     *
+     * @param string $path file path
+     * @return string normalised file path
+     */
+    protected function normalise_file_path($path) {
+        return $path;
+    }
+
     public function include_titles($html) {
 
         $document = $this->load_html($html);
@@ -204,7 +215,7 @@ class entities {
 
             foreach ($files as $file) {
                 $source = cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $file;
-                $destination = $destination_folder . DIRECTORY_SEPARATOR . $file;
+                $destination = $destination_folder . DIRECTORY_SEPARATOR . $this->normalise_file_path($file);
 
                 $destination_directory = dirname($destination);
 
