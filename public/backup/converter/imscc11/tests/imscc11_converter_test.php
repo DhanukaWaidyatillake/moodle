@@ -99,6 +99,82 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->assertStringContainsString('<lom:rights>', file_get_contents($manifest));
     }
 
+    public function test_true_false_answers_can_use_non_literal_identifiers(): void {
+        $question = [
+            'id' => 1,
+            'answers' => [
+                [
+                    'id' => 1,
+                    'identifier' => '1327',
+                    'title' => 'True',
+                    'score' => '1.0000000',
+                    'feedback' => '',
+                ],
+                [
+                    'id' => 2,
+                    'identifier' => '5033',
+                    'title' => 'False',
+                    'score' => '0.0000000',
+                    'feedback' => '',
+                ],
+            ],
+        ];
+
+        $xml = $this->create_true_false_question_node($question);
+
+        $this->assertStringContainsString('<TRUEANSWER>1</TRUEANSWER>', $xml);
+        $this->assertStringContainsString('<FALSEANSWER>2</FALSEANSWER>', $xml);
+    }
+
+    public function test_true_false_answers_still_reject_unknown_identifiers(): void {
+        $question = [
+            'id' => 1,
+            'answers' => [
+                [
+                    'id' => 1,
+                    'identifier' => '1327',
+                    'title' => 'Yes',
+                    'score' => '1.0000000',
+                    'feedback' => '',
+                ],
+                [
+                    'id' => 2,
+                    'identifier' => '5033',
+                    'title' => 'No',
+                    'score' => '0.0000000',
+                    'feedback' => '',
+                ],
+            ],
+        ];
+
+        $this->expectException(\coding_exception::class);
+        $this->create_true_false_question_node($question);
+    }
+
+    /**
+     * Creates Moodle XML for a true/false question.
+     *
+     * @param array $question question data
+     * @return string Moodle XML
+     */
+    protected function create_true_false_question_node($question): string {
+        global $CFG;
+
+        $quiz = new \cc11_quiz();
+        $method = new \ReflectionMethod(\cc11_quiz::class,
+            'create_node_course_question_categories_question_category_question_true_false');
+        $method->setAccessible(true);
+
+        \cc112moodle::$path_to_manifest_folder = $this->tempdirpath;
+        $currentdir = getcwd();
+        chdir($CFG->dirroot . '/backup');
+        try {
+            return $method->invoke($quiz, $question);
+        } finally {
+            chdir($currentdir);
+        }
+    }
+
     /**
      * Writes a minimal IMS CC 1.1 manifest.
      *
