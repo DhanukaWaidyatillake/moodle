@@ -64,7 +64,7 @@ class cc11_forum extends entities11 {
             }
         }
 
-        return $result;
+        return $this->normalise_file_path($result);
     }
 
     public function generate_node() {
@@ -174,4 +174,3 @@ class cc11_forum extends entities11 {
         return '';
     }
 }
-

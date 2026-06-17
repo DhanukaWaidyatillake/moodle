@@ -151,6 +151,37 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->create_true_false_question_node($question);
     }
 
+    public function test_file_paths_are_normalised_for_copied_files_and_references(): void {
+        $filename = "Blooms's Taxonomy Model.jpg";
+        $collidingfilename = 'Bloomss Taxonomy Model.jpg';
+        $ampersandfilename = 'Work Prioritisation & Professional Development LG V1.0.pdf';
+
+        $this->write_file_manifest([$filename, $collidingfilename, $ampersandfilename]);
+        \entities11::reset_file_path_map();
+        new \cc112moodle($this->tempdirpath . '/imsmanifest.xml');
+
+        $entities = new \entities11();
+        $entities->prepare_file_path_map();
+        $entities->move_all_files();
+
+        $safefilename = clean_param($filename, PARAM_PATH);
+        $safecollidingfilename = 'Bloomss Taxonomy Model-1.jpg';
+        $safeampersandfilename = clean_param($ampersandfilename, PARAM_PATH);
+
+        $this->assertFileExists($this->tempdirpath . '/course_files/' . $safefilename);
+        $this->assertFileExists($this->tempdirpath . '/course_files/' . $safecollidingfilename);
+        $this->assertFileExists($this->tempdirpath . '/course_files/' . $safeampersandfilename);
+        $this->assertFileDoesNotExist($this->tempdirpath . '/course_files/' . $filename);
+
+        $html = '<p><img src="' . $filename . '" /><a href="' . $collidingfilename . '">Collision</a>'
+            . '<a href="' . $ampersandfilename . '">File</a></p>';
+        $html = $entities->update_sources($html);
+
+        $this->assertStringContainsString('$@FILEPHP@$/' . $safefilename, $html);
+        $this->assertStringContainsString('$@FILEPHP@$/' . $safecollidingfilename, $html);
+        $this->assertStringContainsString('$@FILEPHP@$/' . $safeampersandfilename, $html);
+    }
+
     /**
      * Creates Moodle XML for a true/false question.
      *
@@ -235,5 +266,54 @@ XML;
 
         file_put_contents($manifest, $content);
         file_put_contents($this->tempdirpath . '/index.html', 'Hello');
+    }
+
+    /**
+     * Writes a minimal IMS CC 1.1 manifest with file resources.
+     *
+     * @param array $files file paths
+     */
+    protected function write_file_manifest(array $files): void {
+        $items = '';
+        $resources = '';
+        foreach ($files as $index => $file) {
+            $identifier = 'resource' . $index;
+            $escapedfile = htmlspecialchars($file, ENT_QUOTES | ENT_XML1);
+            $items .= <<<XML
+        <item identifier="item{$index}" identifierref="{$identifier}">
+          <title>{$escapedfile}</title>
+        </item>
+XML;
+            $resources .= <<<XML
+    <resource type="webcontent" identifier="{$identifier}" href="{$escapedfile}">
+      <file href="{$escapedfile}"/>
+    </resource>
+XML;
+            file_put_contents($this->tempdirpath . '/' . $file, $file);
+        }
+
+        $content = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="manifest1"
+    xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="root">
+{$items}
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+{$resources}
+  </resources>
+</manifest>
+XML;
+
+        file_put_contents($this->tempdirpath . '/imsmanifest.xml', $content);
     }
 }
