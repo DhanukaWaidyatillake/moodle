@@ -93,9 +93,20 @@ class imscc11_converter extends base_converter {
 
         $this->log('validating manifest', backup::LOG_DEBUG, null, 1);
         $validator = new manifest_validator($CFG->dirroot . '/backup/cc/schemas11');
+        error_messages::instance()->reset();
         if (!$validator->validate($manifest)) {
-            $this->log('validation error(s): '.PHP_EOL.error_messages::instance(), backup::LOG_DEBUG, null, 2);
-            throw new imscc11_convert_exception(error_messages::instance()->to_string(true));
+            $validationerrors = error_messages::instance()->to_string(true);
+            if ($this->normalise_resource_metadata($manifest)) {
+                $this->log('normalised resource metadata', backup::LOG_DEBUG, null, 1);
+                error_messages::instance()->reset();
+                if (!$validator->validate($manifest)) {
+                    $this->log('validation error(s): '.PHP_EOL.error_messages::instance(), backup::LOG_DEBUG, null, 2);
+                    throw new imscc11_convert_exception(error_messages::instance()->to_string(true));
+                }
+            } else {
+                $this->log('validation error(s): '.PHP_EOL.$validationerrors, backup::LOG_DEBUG, null, 2);
+                throw new imscc11_convert_exception($validationerrors);
+            }
         }
         $manifestdir = dirname($manifest);
         $cc112moodle = new cc112moodle($manifest);
@@ -121,6 +132,73 @@ class imscc11_converter extends base_converter {
         rename($manifestdir.'/course_files', $this->get_workdir_path().'/course_files');
     }
 
+    /**
+     * Removes resource metadata that does not match the IMS CC 1.1 resource LOM profile.
+     *
+     * Some IMSCC exports can include resource-level LOM rights metadata in CC 1.1 packages. The CC 1.1
+     * resource profile accepted by Moodle only permits educational metadata there, while Moodle's
+     * converter does not use the invalid resource metadata for the restore. Keep this compatibility
+     * step limited to known compatible exports and only call it after normal schema validation has failed.
+     *
+     * @param string $manifest the manifest file path
+     * @return int number of metadata nodes or child nodes removed
+     */
+    protected function normalise_resource_metadata($manifest) {
+
+        $manifestdir = dirname($manifest);
+        if (!file_exists($manifestdir . '/course_settings/canvas_export.txt')) {
+            return 0;
+        }
+
+        $xmldoc = new DOMDocument();
+        $xmldoc->preserveWhiteSpace = false;
+        $xmldoc->formatOutput = true;
+        $xmldoc->validateOnParse = false;
+        $xmldoc->strictErrorChecking = false;
+
+        $xmlerror = new libxml_errors_mgr(true);
+        if (!$xmldoc->load($manifest, LIBXML_NONET)) {
+            $xmlerror->collect();
+            return 0;
+        }
+
+        $xpath = cc112moodle::newx_path($xmldoc, cc112moodle::$namespaces);
+        $metadata = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource/imscc:metadata[lom:lom]');
+        $changed = 0;
+
+        foreach ($metadata as $metadatanode) {
+            $lomnodes = $xpath->query('lom:lom', $metadatanode);
+            if (empty($lomnodes) || $lomnodes->length === 0) {
+                continue;
+            }
+            $lomnode = $lomnodes->item(0);
+
+            $children = array();
+            foreach ($lomnode->childNodes as $child) {
+                if ($child->nodeType === XML_ELEMENT_NODE) {
+                    $children[] = $child;
+                }
+            }
+
+            foreach ($children as $child) {
+                if ($child->namespaceURI !== cc112moodle::$namespaces['lom'] || $child->localName !== 'educational') {
+                    $lomnode->removeChild($child);
+                    $changed++;
+                }
+            }
+
+            if ($xpath->evaluate('count(lom:educational)', $lomnode) == 0) {
+                $metadatanode->parentNode->removeChild($metadatanode);
+                $changed++;
+            }
+        }
+
+        if ($changed) {
+            $xmldoc->save($manifest);
+        }
+
+        return $changed;
+    }
 
 }
 
