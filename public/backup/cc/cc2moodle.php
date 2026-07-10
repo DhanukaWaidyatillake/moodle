@@ -631,8 +631,11 @@ class cc2moodle {
                         $title = $titles->item(0)->nodeValue;
                     }
 
-                    $cc_type = $this->get_item_cc_type($identifierref);
-                    $moodle_type = $this->convert_to_moodle_type($cc_type);
+                $cc_type = $this->get_item_cc_type($identifierref);
+                $moodle_type = $this->convert_to_moodle_type($cc_type);
+                if ($moodle_type == MOODLE_TYPE_QUIZ && !$this->quiz_has_supported_questions($identifierref)) {
+                    $moodle_type = TYPE_UNKNOWN;
+                }
                     //Fix the label issue - MDL-33523
                     if (empty($identifierref) && empty($title)) {
                       $moodle_type = TYPE_UNKNOWN;
@@ -747,6 +750,58 @@ class cc2moodle {
         } else {
             return '';
         }
+    }
+
+    /**
+     * Checks whether the referenced quiz resource contains supported questions.
+     *
+     * @param string $identifier resource identifier
+     * @return bool
+     */
+    protected function quiz_has_supported_questions($identifier) {
+        if (empty($identifier)) {
+            return false;
+        }
+
+        $assessment_file = $this->get_quiz_assessment_file($identifier);
+        if (empty($assessment_file)) {
+            return false;
+        }
+
+        $quizentity = $this->get_quiz_entity();
+        $assessment = $quizentity->load_xml_resource(static::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $assessment_file);
+        if (empty($assessment)) {
+            return false;
+        }
+
+        return $quizentity->has_supported_questions($assessment);
+    }
+
+    /**
+     * Returns the assessment XML path for a quiz resource.
+     *
+     * @param string $identifier resource identifier
+     * @return string
+     */
+    protected function get_quiz_assessment_file($identifier) {
+        $xpath = static::newx_path(static::$manifest, static::$namespaces);
+        $files = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource[@identifier="' .
+            $identifier . '"]/imscc:file/@href');
+
+        if (empty($files) || empty($files->item(0)->nodeValue)) {
+            return '';
+        }
+
+        return $files->item(0)->nodeValue;
+    }
+
+    /**
+     * Returns the quiz entity used by the converter.
+     *
+     * @return cc_quiz
+     */
+    protected function get_quiz_entity() {
+        return new cc_quiz();
     }
 
     public static function newx_path(DOMDocument $manifest, $namespaces = '') {
