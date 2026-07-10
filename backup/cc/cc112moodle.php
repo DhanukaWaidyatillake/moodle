@@ -201,6 +201,15 @@ class cc112moodle extends cc2moodle {
         return $mod_visible;
     }
 
+    /**
+     * Returns the quiz entity used by the IMSCC 1.1 converter.
+     *
+     * @return cc_quiz
+     */
+    protected function get_quiz_entity() {
+        return new cc11_quiz();
+    }
+
     protected function create_node_course_modules_mod() {
         $labels = new cc_label();
         $resources = new cc11_resource();
