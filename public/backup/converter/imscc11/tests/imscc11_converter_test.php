@@ -151,6 +151,28 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->create_true_false_question_node($question);
     }
 
+    public function test_unsupported_questions_are_skipped_without_breaking_countability(): void {
+        $assessment = $this->create_assessment_xml_with_question_type('cc.multiple_dropdown');
+
+        $questions = $this->get_questions_from_assessment($assessment);
+
+        $this->assertSame([], $questions);
+        $this->assertCount(0, $questions);
+    }
+
+    public function test_unsupported_quiz_is_not_registered_as_activity(): void {
+        $manifest = $this->tempdirpath . '/imsmanifest.xml';
+        $assessmentfile = 'quiz.xml';
+        $this->write_manifest_with_quiz_resource($manifest, $assessmentfile);
+        file_put_contents($this->tempdirpath . '/' . $assessmentfile,
+            $this->create_assessment_xml_string('cc.multiple_dropdown'));
+
+        new \cc112moodle($manifest);
+
+        $quizinstances = \cc112moodle::$instances['instances'][MOODLE_TYPE_QUIZ] ?? [];
+        $this->assertSame([], $quizinstances);
+    }
+
     public function test_file_paths_are_normalised_for_copied_files_and_references(): void {
         $filename = "Blooms's Taxonomy Model.jpg";
         $collidingfilename = 'Bloomss Taxonomy Model.jpg';
@@ -194,7 +216,6 @@ final class imscc11_converter_test extends \advanced_testcase {
         $quiz = new \cc11_quiz();
         $method = new \ReflectionMethod(\cc11_quiz::class,
             'create_node_course_question_categories_question_category_question_true_false');
-        $method->setAccessible(true);
 
         \cc112moodle::$path_to_manifest_folder = $this->tempdirpath;
         $currentdir = getcwd();
@@ -204,6 +225,100 @@ final class imscc11_converter_test extends \advanced_testcase {
         } finally {
             chdir($currentdir);
         }
+    }
+
+    /**
+     * Extracts questions from an assessment document.
+     *
+     * @param \DOMDocument $assessment assessment XML
+     * @return array extracted questions
+     */
+    protected function get_questions_from_assessment(\DOMDocument $assessment): array {
+        $quiz = new \cc11_quiz();
+        $method = new \ReflectionMethod(\cc11_quiz::class, 'get_questions');
+
+        $lastquestionid = 0;
+        $lastanswerid = 0;
+        $arguments = [$assessment, &$lastquestionid, &$lastanswerid, '', 0];
+
+        return $method->invokeArgs($quiz, $arguments);
+    }
+
+    /**
+     * Creates an assessment document with a single question of the given type.
+     *
+     * @param string $questiontype Common Cartridge question type
+     * @return \DOMDocument assessment XML
+     */
+    protected function create_assessment_xml_with_question_type(string $questiontype): \DOMDocument {
+        $assessmentxml = $this->create_assessment_xml_string($questiontype);
+
+        $assessment = new \DOMDocument();
+        $assessment->loadXML($assessmentxml);
+
+        return $assessment;
+    }
+
+    /**
+     * Creates an assessment XML string with a single question of the given type.
+     *
+     * @param string $questiontype Common Cartridge question type
+     * @return string assessment XML
+     */
+    protected function create_assessment_xml_string(string $questiontype): string {
+        return <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/ims_qtiasiv1p2">
+  <assessment ident="assessment1">
+    <section ident="section1">
+      <item ident="question1">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield>
+              <fieldlabel>cc_profile</fieldlabel>
+              <fieldentry>{$questiontype}</fieldentry>
+            </qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+      </item>
+    </section>
+  </assessment>
+</questestinterop>
+XML;
+    }
+
+    /**
+     * Writes a minimal IMSCC 1.1 manifest with a single quiz resource.
+     *
+     * @param string $manifest manifest path
+     * @param string $assessmentfile assessment file path
+     */
+    protected function write_manifest_with_quiz_resource(string $manifest, string $assessmentfile): void {
+        $content = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="manifest1"
+    xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="item1" identifierref="resource1">
+        <title>Unsupported quiz</title>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="resource1" type="imsqti_xmlv1p2/imscc_xmlv1p1/assessment">
+      <file href="{$assessmentfile}"/>
+    </resource>
+  </resources>
+</manifest>
+XML;
+
+        file_put_contents($manifest, $content);
     }
 
     /**

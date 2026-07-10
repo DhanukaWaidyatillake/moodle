@@ -383,9 +383,40 @@ class cc11_quiz extends entities11 {
             }
         }
 
-        $questions = !empty($questions) ? $questions : '';
+    return $questions;
+    }
 
-        return $questions;
+    /**
+     * Checks whether an assessment contains at least one supported question.
+     *
+     * @param DOMDocument $assessment assessment XML
+     * @param bool $is_question_bank whether the assessment is a question bank
+     * @return bool
+     */
+    public function has_supported_questions($assessment, $is_question_bank = false) {
+        $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
+
+        if (!$is_question_bank) {
+            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:assessment/xmlns:section/xmlns:item');
+        } else {
+            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:objectbank/xmlns:item');
+        }
+
+        foreach ($questions_items as $question_item) {
+            $question_identifier = $xpath->query('@ident', $question_item);
+            $question_identifier = !empty($question_identifier->item(0)->nodeValue) ? $question_identifier->item(0)->nodeValue : '';
+
+            if (empty($question_identifier)) {
+                continue;
+            }
+
+            $question_type = $this->get_question_type($question_identifier, $assessment);
+            if (!empty($question_type['moodle'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function str_replace_once($search, $replace, $subject) {
