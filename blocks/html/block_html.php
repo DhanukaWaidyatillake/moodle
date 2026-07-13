@@ -165,21 +165,36 @@ class block_html extends block_base {
     }
 
     function content_is_trusted() {
-        global $SCRIPT;
+        global $SCRIPT, $CFG, $USER;
 
         if (!$context = context::instance_by_id($this->instance->parentcontextid, IGNORE_MISSING)) {
             return false;
         }
-        //find out if this block is on the profile page
+        // Find out if this block is on the profile page.
         if ($context->contextlevel == CONTEXT_USER) {
             if ($SCRIPT === '/my/index.php') {
                 // this is exception - page is completely private, nobody else may see content there
                 // that is why we allow JS here
                 return true;
-            } else {
-                // no JS on public personal pages, it would be a big security issue
-                return false;
             }
+
+            // Trust dashboard HTML content when serving the dashboard via web services.
+            if (
+                defined('WS_SERVER') &&
+                WS_SERVER &&
+                !empty($this->page) &&
+                $this->page->pagetype === 'my-index'
+            ) {
+                require_once($CFG->dirroot . '/my/lib.php');
+                $usersubpage = my_get_page($USER->id);
+                $usersubpage = $usersubpage->id ?? null;
+                if ($this->page->subpage === $usersubpage) {
+                    return true;
+                }
+            }
+
+            // No JS on public personal pages, it would be a big security issue.
+            return false;
         }
 
         return true;
