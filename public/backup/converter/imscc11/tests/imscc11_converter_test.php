@@ -204,6 +204,131 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->assertStringContainsString('$@FILEPHP@$/' . $safeampersandfilename, $html);
     }
 
+        public function test_unsupported_lti_v1p3_resources_are_removed_for_canvas_exports(): void {
+        global $CFG;
+
+        $manifest = $this->tempdirpath . '/imsmanifest.xml';
+        $this->write_manifest_with_lti_v1p3_resource($manifest, true);
+        check_dir_exists($this->tempdirpath . '/course_settings');
+        file_put_contents($this->tempdirpath . '/course_settings/canvas_export.txt', 'canvas');
+        file_put_contents($this->tempdirpath . '/lti_resource_links/lti1.xml', '<lti/>');
+
+        $validator = new manifest_validator($CFG->dirroot . '/backup/cc/schemas11');
+        \error_messages::instance()->reset();
+        $this->assertFalse($validator->validate($manifest));
+
+        $converter = convert_factory::get_converter('imscc11', $this->tempdir);
+        $method = new \ReflectionMethod(imscc11_converter::class, 'normalise_unsupported_lti_resources');
+        $method->setAccessible(true);
+        $this->assertGreaterThan(0, $method->invoke($converter, $manifest));
+
+        \error_messages::instance()->reset();
+        $this->assertTrue($validator->validate($manifest));
+
+        $xmldoc = new \DOMDocument();
+        $xmldoc->load($manifest);
+        $xpath = new \DOMXPath($xmldoc);
+        $xpath->registerNamespace('imscc', 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1');
+        $this->assertEquals(0, $xpath->evaluate('count(/imscc:manifest/imscc:resources/imscc:resource[@type="imsbasiclti_xmlv1p3"])'));
+    }
+
+    public function test_unsupported_lti_v1p3_outline_items_are_removed(): void {
+        $manifest = $this->tempdirpath . '/imsmanifest.xml';
+        $this->write_manifest_with_lti_v1p3_resource($manifest, true);
+        check_dir_exists($this->tempdirpath . '/course_settings');
+        file_put_contents($this->tempdirpath . '/course_settings/canvas_export.txt', 'canvas');
+
+        $converter = convert_factory::get_converter('imscc11', $this->tempdir);
+        $method = new \ReflectionMethod(imscc11_converter::class, 'normalise_unsupported_lti_resources');
+        $method->setAccessible(true);
+        $method->invoke($converter, $manifest);
+
+        $xmldoc = new \DOMDocument();
+        $xmldoc->load($manifest);
+        $xpath = new \DOMXPath($xmldoc);
+        $xpath->registerNamespace('imscc', 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1');
+        $this->assertEquals(0, $xpath->evaluate('count(/imscc:manifest/imscc:organizations/imscc:organization//imscc:item[@identifierref="lti1"])'));
+    }
+
+    public function test_unsupported_lti_resources_without_export_marker_are_not_changed(): void {
+        $manifest = $this->tempdirpath . '/imsmanifest.xml';
+        $this->write_manifest_with_lti_v1p3_resource($manifest, false);
+
+        $converter = convert_factory::get_converter('imscc11', $this->tempdir);
+        $method = new \ReflectionMethod(imscc11_converter::class, 'normalise_unsupported_lti_resources');
+        $method->setAccessible(true);
+        $this->assertEquals(0, $method->invoke($converter, $manifest));
+        $this->assertStringContainsString('imsbasiclti_xmlv1p3', file_get_contents($manifest));
+    }
+
+    public function test_clone_questions_for_instance_assigns_fresh_question_and_answer_ids(): void {
+        $quiz = new \cc11_quiz();
+        $method = new \ReflectionMethod(\cc11_quiz::class, 'clone_questions_for_instance');
+        $method->setAccessible(true);
+
+        $source = [[
+            'id' => 1,
+            'title' => 'Question 1',
+            'answers' => [
+                ['id' => 10, 'title' => 'True'],
+                ['id' => 11, 'title' => 'False'],
+            ],
+        ]];
+
+        $lastquestionid = 1;
+        $lastanswerid = 11;
+        $cloned = $method->invokeArgs($quiz, [$source, &$lastquestionid, &$lastanswerid]);
+
+        $this->assertCount(1, $cloned);
+        $this->assertEquals(2, $cloned[0]['id']);
+        $this->assertEquals(12, $cloned[0]['answers'][0]['id']);
+        $this->assertEquals(13, $cloned[0]['answers'][1]['id']);
+        $this->assertEquals(2, $lastquestionid);
+        $this->assertEquals(13, $lastanswerid);
+    }
+
+    public function test_duplicate_quiz_resource_generates_two_course_module_entries(): void {
+        global $CFG;
+
+        $manifest = $this->tempdirpath . '/imsmanifest.xml';
+        $assessmentfile = 'quiz1/assessment_qti.xml';
+        $this->write_manifest_with_duplicate_quiz_resource($manifest, $assessmentfile);
+        check_dir_exists($this->tempdirpath . '/quiz1');
+        file_put_contents($this->tempdirpath . '/' . $assessmentfile, $this->create_true_false_assessment_xml_string());
+
+        \cc112moodle::$path_to_manifest_folder = $this->tempdirpath;
+        new \cc112moodle($manifest);
+
+        $quizinstances = \cc112moodle::$instances['instances'][MOODLE_TYPE_QUIZ] ?? [];
+        $this->assertCount(2, $quizinstances);
+        $this->assertSame('quiz1', $quizinstances[0]['resource_indentifier']);
+        $this->assertSame('quiz1', $quizinstances[1]['resource_indentifier']);
+        $this->assertSame(0, $quizinstances[0]['instance']);
+        $this->assertSame(1, $quizinstances[1]['instance']);
+
+        $quiz = new \cc11_quiz();
+        $method = new \ReflectionMethod(\cc11_quiz::class, 'generate_instances');
+        $method->setAccessible(true);
+
+        $currentdir = getcwd();
+        chdir($CFG->dirroot . '/backup');
+        try {
+            $instances = $method->invoke($quiz);
+            $modxml = (new \ReflectionMethod(\cc11_quiz::class, 'generate_node_course_modules_mod'))
+                ->invoke($quiz);
+        } finally {
+            chdir($currentdir);
+        }
+
+        $this->assertCount(2, $instances);
+        $this->assertEquals(0, $instances['quiz:0']['id']);
+        $this->assertEquals(1, $instances['quiz:1']['id']);
+        $this->assertNotEquals($instances['quiz:0']['questions'][0]['id'], $instances['quiz:1']['questions'][0]['id']);
+        $this->assertEquals(2, substr_count($modxml, '<MODTYPE>quiz</MODTYPE>'));
+        $this->assertStringContainsString('<ID>0</ID>', $modxml);
+        $this->assertStringContainsString('<ID>1</ID>', $modxml);
+    }
+
     /**
      * Creates Moodle XML for a true/false question.
      *
@@ -430,5 +555,144 @@ XML;
 XML;
 
         file_put_contents($this->tempdirpath . '/imsmanifest.xml', $content);
+    }
+
+        /**
+     * Writes a manifest containing an invalid LTI 1.3 resource.
+     *
+     * @param string $manifest manifest path
+     * @param bool $linkinoutline whether the LTI resource is linked from the course outline
+     */
+    protected function write_manifest_with_lti_v1p3_resource(string $manifest, bool $linkinoutline): void {
+        $outlineitem = '';
+        if ($linkinoutline) {
+            $outlineitem = <<<XML
+        <item identifier="ltiitem1" identifierref="lti1">
+          <title>Lucid Integration</title>
+        </item>
+XML;
+        }
+
+        $content = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="manifest1"
+    xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="root">
+        <item identifier="item1" identifierref="resource1">
+          <title>Page</title>
+        </item>
+{$outlineitem}
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource type="webcontent" identifier="resource1" href="index.html">
+      <file href="index.html"/>
+    </resource>
+    <resource identifier="lti1" type="imsbasiclti_xmlv1p3">
+      <file href="lti_resource_links/lti1.xml"/>
+    </resource>
+  </resources>
+</manifest>
+XML;
+
+        file_put_contents($manifest, $content);
+        file_put_contents($this->tempdirpath . '/index.html', 'Hello');
+    }
+
+    /**
+     * Writes a manifest where the same quiz resource is linked twice in the outline.
+     *
+     * @param string $manifest manifest path
+     * @param string $assessmentfile assessment file path
+     */
+    protected function write_manifest_with_duplicate_quiz_resource(string $manifest, string $assessmentfile): void {
+        $content = <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="manifest1"
+    xmlns="http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <metadata>
+    <schema>IMS Common Cartridge</schema>
+    <schemaversion>1.1.0</schemaversion>
+  </metadata>
+  <organizations>
+    <organization identifier="org1" structure="rooted-hierarchy">
+      <item identifier="root">
+        <item identifier="item1" identifierref="quiz1">
+          <title>Review quiz (first link)</title>
+        </item>
+        <item identifier="item2" identifierref="quiz1">
+          <title>Review quiz (second link)</title>
+        </item>
+      </item>
+    </organization>
+  </organizations>
+  <resources>
+    <resource identifier="quiz1" type="imsqti_xmlv1p2/imscc_xmlv1p1/assessment">
+      <file href="{$assessmentfile}"/>
+    </resource>
+  </resources>
+</manifest>
+XML;
+
+        file_put_contents($manifest, $content);
+    }
+
+    /**
+     * Creates a minimal true/false assessment XML string with one supported question.
+     *
+     * @return string assessment XML
+     */
+    protected function create_true_false_assessment_xml_string(): string {
+        return <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/ims_qtiasiv1p2">
+  <assessment ident="assessment1">
+    <section ident="section1">
+      <item ident="question1" title="Question 1">
+        <itemmetadata>
+          <qtimetadata>
+            <qtimetadatafield>
+              <fieldlabel>cc_profile</fieldlabel>
+              <fieldentry>cc.true_false.v0p1</fieldentry>
+            </qtimetadatafield>
+          </qtimetadata>
+        </itemmetadata>
+        <presentation>
+          <material>
+            <mattext texttype="text/html">Java is a compiled language.</mattext>
+          </material>
+          <response_lid ident="response1">
+            <render_choice>
+              <response_label ident="true">
+                <material><mattext texttype="text/plain">True</mattext></material>
+              </response_label>
+              <response_label ident="false">
+                <material><mattext texttype="text/plain">False</mattext></material>
+              </response_label>
+            </render_choice>
+          </response_lid>
+        </presentation>
+        <resprocessing>
+          <respcondition continue="No">
+            <conditionvar>
+              <varequal respident="response1" case="Yes">true</varequal>
+            </conditionvar>
+            <setvar action="Set" varname="SCORE">100</setvar>
+          </respcondition>
+        </resprocessing>
+      </item>
+    </section>
+  </assessment>
+</questestinterop>
+XML;
     }
 }
