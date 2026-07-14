@@ -62,65 +62,138 @@ class cc_quiz extends entities {
         return $sheet_question_mod_feedback;
     }
 
-    private function generate_instances() {
+       private function generate_instances() {
 
-        $last_instance_id = 0;
-        $last_question_id = 0;
-        $last_answer_id = 0;
+        $lastquestionid = 0;
+        $lastanswerid = 0;
+        $instances = [];
+        $assessmentcache = [];
 
-        $instances = array();
-
-        $types = array(MOODLE_TYPE_QUIZ, MOODLE_TYPE_QUESTION_BANK);
+        $types = [MOODLE_TYPE_QUIZ, MOODLE_TYPE_QUESTION_BANK];
 
         foreach ($types as $type) {
 
-            if (!empty(cc2moodle::$instances['instances'][$type])) {
+            if (empty(cc2moodle::$instances['instances'][$type])) {
+                continue;
+            }
 
-                foreach (cc2moodle::$instances['instances'][$type] as $instance) {
+            foreach (cc2moodle::$instances['instances'][$type] as $instance) {
 
-                    if ($type == MOODLE_TYPE_QUIZ) {
-                        $is_question_bank = 0;
-                    } else {
-                        $is_question_bank = 1;
+                $isquestionbank = ($type == MOODLE_TYPE_QUIZ) ? 0 : 1;
+                $resourceid = $instance['resource_indentifier'];
+
+                if (!isset($assessmentcache[$resourceid])) {
+                    $assessmentfile = $this->get_external_xml($resourceid);
+
+                    if (empty($assessmentfile)) {
+                        $assessmentcache[$resourceid] = null;
+                        continue;
                     }
 
-                    $assessment_file = $this->get_external_xml($instance['resource_indentifier']);
+                    $assessment = $this->load_xml_resource(
+                        cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $assessmentfile
+                    );
 
-                    if (!empty($assessment_file)) {
-
-                        $assessment = $this->load_xml_resource(
-                            cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $assessment_file
-                        );
-
-                        if (!empty($assessment)) {
-
-                            $replace_values = array('unlimited' => 0);
-
-                            $questions = $this->get_questions(
-                                $assessment, $last_question_id, $last_answer_id, dirname($assessment_file), $is_question_bank
-                            );
-                            $question_count = count($questions);
-
-                            if (!empty($question_count)) {
-
-                                $last_instance_id++;
-
-                                $instances[$instance['resource_indentifier']]['questions'] = $questions;
-                                $instances[$instance['resource_indentifier']]['id'] = $last_instance_id;
-                                $instances[$instance['resource_indentifier']]['title'] = $instance['title'];
-                                $instances[$instance['resource_indentifier']]['is_question_bank'] = $is_question_bank;
-                                $instances[$instance['resource_indentifier']]['options']['timelimit'] =
-                                    $this->get_global_config($assessment, 'qmd_timelimit', 0);
-                                $instances[$instance['resource_indentifier']]['options']['max_attempts'] =
-                                    $this->get_global_config($assessment, 'cc_maxattempts', 0, $replace_values);
-                            }
-                        }
+                    if (empty($assessment)) {
+                        $assessmentcache[$resourceid] = null;
+                        continue;
                     }
+
+                    $replacevalues = ['unlimited' => 0];
+                    $questions = $this->get_questions(
+                        $assessment,
+                        $lastquestionid,
+                        $lastanswerid,
+                        dirname($assessmentfile),
+                        $isquestionbank
+                    );
+
+                    if (empty($questions)) {
+                        $assessmentcache[$resourceid] = null;
+                        continue;
+                    }
+
+                    $assessmentcache[$resourceid] = [
+                        'questions' => $questions,
+                        'options' => [
+                            'timelimit' => $this->get_global_config($assessment, 'qmd_timelimit', 0),
+                            'max_attempts' => $this->get_global_config(
+                                $assessment,
+                                'cc_maxattempts',
+                                0,
+                                $replacevalues
+                            ),
+                        ],
+                    ];
                 }
+
+                if (empty($assessmentcache[$resourceid])) {
+                    continue;
+                }
+
+                // Clone questions when the same assessment is linked more than once in the outline.
+                $questions = $this->clone_questions_for_instance(
+                    $assessmentcache[$resourceid]['questions'],
+                    $lastquestionid,
+                    $lastanswerid
+                );
+
+                if (empty($questions)) {
+                    continue;
+                }
+
+                $instancekey = $type . ':' . $instance['instance'];
+
+                $instances[$instancekey] = [
+                    'questions' => $questions,
+                    'id' => $instance['instance'],
+                    'title' => $instance['title'],
+                    'is_question_bank' => $isquestionbank,
+                    'options' => $assessmentcache[$resourceid]['options'],
+                ];
             }
         }
 
         return $instances;
+    }
+
+    /**
+     * Returns a copy of quiz questions with fresh ids for duplicate outline references.
+     *
+     * @param array $questions source questions
+     * @param int $lastquestionid running question id counter
+     * @param int $lastanswerid running answer id counter
+     * @return array
+     */
+    private function clone_questions_for_instance(array $questions, &$lastquestionid, &$lastanswerid) {
+
+        if (empty($questions)) {
+            return [];
+        }
+
+        $cloned = [];
+
+        foreach ($questions as $question) {
+            $lastquestionid++;
+
+            $newquestion = $question;
+            $newquestion['id'] = $lastquestionid;
+
+            if (!empty($question['answers']) && is_array($question['answers'])) {
+                $newanswers = [];
+                foreach ($question['answers'] as $answer) {
+                    $lastanswerid++;
+                    $newanswer = $answer;
+                    $newanswer['id'] = $lastanswerid;
+                    $newanswers[] = $newanswer;
+                }
+                $newquestion['answers'] = $newanswers;
+            }
+
+            $cloned[] = $newquestion;
+        }
+
+        return $cloned;
     }
 
 
