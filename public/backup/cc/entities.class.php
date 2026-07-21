@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * @package   moodlecore
  * @subpackage backup-imscc
@@ -23,7 +24,8 @@
 
 defined('MOODLE_INTERNAL') or die('Direct access to this script is forbidden.');
 
-class entities {
+class entities
+{
     /**
      * Prepares convert for inclusion into XML
      *
@@ -31,10 +33,12 @@ class entities {
      * @return string
      */
     public static function safexml($value) {
-        $result = htmlspecialchars(html_entity_decode($value, ENT_QUOTES, 'UTF-8'),
-                                   ENT_NOQUOTES,
-                                   'UTF-8',
-                                   false);
+        $result = htmlspecialchars(
+            html_entity_decode($value, ENT_QUOTES, 'UTF-8'),
+            ENT_NOQUOTES,
+            'UTF-8',
+            false
+        );
         return $result;
     }
 
@@ -59,7 +63,7 @@ class entities {
         }
 
         // See if we can strip off body tag and anything outside of it.
-        foreach (array('body', 'html') as $tagname) {
+        foreach (['body', 'html'] as $tagname) {
             $regex = str_replace('##', $tagname, "/<##[^>]*>(.+)<\/##>/is");
             if (preg_match($regex, $result, $matches)) {
                 $result = $matches[1];
@@ -73,7 +77,7 @@ class entities {
 
         $resource = new DOMDocument();
 
-        cc2moodle::log_action('Load the XML resource file: '.$path_to_file);
+        cc2moodle::log_action('Load the XML resource file: ' . $path_to_file);
 
         if (!$resource->load($path_to_file)) {
             cc2moodle::log_action('Cannot load the XML resource file: ' . $path_to_file, false);
@@ -86,25 +90,23 @@ class entities {
 
         $document = $this->load_html($html);
 
-        $tags = array('img' => 'src' , 'a' => 'href');
+        $tags = ['img' => 'src', 'a' => 'href'];
 
         foreach ($tags as $tag => $attribute) {
-
             $elements = $document->getElementsByTagName($tag);
 
             foreach ($elements as $element) {
-
-                $attribute_value = $element->getAttribute($attribute);
-                $protocol = parse_url($attribute_value, PHP_URL_SCHEME);
+                $attributevalue = $element->getAttribute($attribute);
+                $protocol = parse_url($attributevalue, PHP_URL_SCHEME);
 
                 if (empty($protocol)) {
-                    $attribute_value = str_replace("\$IMS-CC-FILEBASE\$", "", $attribute_value);
-                    $attribute_value = $this->full_path($root_path . "/" . $attribute_value, "/");
-                    $attribute_value = $this->normalise_file_path($attribute_value);
-                    $attribute_value = "\$@FILEPHP@\$" . "/" . $attribute_value;
+                    $attributevalue = str_replace("\$IMS-CC-FILEBASE\$", "", $attributevalue);
+                    $attributevalue = $this->full_path($root_path . "/" . $attributevalue, "/");
+                    $attributevalue = $this->normalise_file_path($attributevalue);
+                    $attributevalue = "\$@FILEPHP@\$" . "/" . $attributevalue;
                 }
 
-                $element->setAttribute($attribute, $attribute_value);
+                $element->setAttribute($attribute, $attributevalue);
             }
         }
 
@@ -129,7 +131,6 @@ class entities {
             $rcount = 0;
 
             while ($can_continue) {
-
                 $dir_part = ($start !== false) ? substr($rtemp, $start + 1, $length - $start) : $rtemp;
                 $can_continue = ($dir_part !== false);
 
@@ -139,7 +140,7 @@ class entities {
                             $rcount++;
                         } else {
                             if ($rcount > 0) {
-                                $rcount --;
+                                $rcount--;
                             } else {
                                 $result = ($result == '') ? $dir_part : $dir_part . $dir_sep . $result;
                             }
@@ -172,7 +173,6 @@ class entities {
         $images = $document->getElementsByTagName('img');
 
         foreach ($images as $image) {
-
             $src = $image->getAttribute('src');
             $alt = $image->getAttribute('alt');
             $title = $image->getAttribute('title');
@@ -196,8 +196,8 @@ class entities {
 
         $xpath = cc2moodle::newx_path(cc2moodle::$manifest, cc2moodle::$namespaces);
 
-        $files = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource[@identifier="'.
-            $identifier.'"]/imscc:file/@href');
+        $files = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource[@identifier="' .
+            $identifier . '"]/imscc:file/@href');
 
         if (empty($files)) {
             $response = '';
@@ -208,14 +208,13 @@ class entities {
         return $response;
     }
 
-    public function move_files($files, $destination_folder) {
+    public function move_files($files, $destinationfolder) {
         global $CFG, $OUTPUT;
 
         if (!empty($files)) {
-
             foreach ($files as $file) {
-                $source = cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $file;
-                $destination = $destination_folder . DIRECTORY_SEPARATOR . $this->normalise_file_path($file);
+                $source = cc2moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . $file;
+                $destination = $destinationfolder . DIRECTORY_SEPARATOR . $this->normalise_file_path($file);
 
                 $destination_directory = dirname($destination);
 
@@ -241,19 +240,18 @@ class entities {
     protected function get_all_files() {
         global $CFG;
 
-        $all_files = array();
+        $all_files = [];
 
         $xpath = cc2moodle::newx_path(cc2moodle::$manifest, cc2moodle::$namespaces);
 
         foreach (cc2moodle::$restypes as $type) {
-
             $files = $xpath->query('/imscc:manifest/imscc:resources/imscc:resource[@type="' . $type . '"]/imscc:file/@href');
 
             if (!empty($files) && ($files->length > 0)) {
                 foreach ($files as $file) {
                     // Omit html files.
                     $ext = strtolower(pathinfo($file->nodeValue, PATHINFO_EXTENSION));
-                    if (in_array($ext, array('html', 'htm', 'xhtml'))) {
+                    if (in_array($ext, ['html', 'htm', 'xhtml'])) {
                         continue;
                     }
                     $all_files[] = $file->nodeValue;
@@ -266,20 +264,22 @@ class entities {
         $xquery = "//imscc:item/imscc:item/imscc:item[imscc:title][not(@identifierref)]";
         $labels = $xpath->query($xquery);
         if (!empty($labels) && ($labels->length > 0)) {
-            $tname = 'course_files';
-            $dpath = cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $tname;
-            $rfpath = 'files.gif';
-            $fpath = $dpath . DIRECTORY_SEPARATOR . $rfpath;
+            $icon = self::get_imscc_label_icon();
+            if ($icon !== null) {
+                $tname = 'course_files';
+                $dpath = cc2moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . $tname;
+                $rfpath = $icon['filename'];
+                $fpath = $dpath . DIRECTORY_SEPARATOR . $rfpath;
 
-            if (!file_exists($dpath)) {
-                mkdir($dpath, $CFG->directorypermissions, true);
+                if (!file_exists($dpath)) {
+                    mkdir($dpath, $CFG->directorypermissions, true);
+                }
+
+                if (copy($icon['source'], $fpath)) {
+                    $all_files[] = $rfpath;
+                }
             }
-            // Copy the folder.gif file.
-            $folder_gif = "{$CFG->dirroot}/pix/i/files.gif";
-            copy($folder_gif, $fpath);
-            $all_files[] = $rfpath;
         }
-
         $all_files = empty($all_files) ? '' : $all_files;
 
         return $all_files;
@@ -290,9 +290,8 @@ class entities {
         $files = $this->get_all_files();
 
         if (!empty($files)) {
-            $this->move_files($files, cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . 'course_files', true);
+            $this->move_files($files, cc2moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . 'course_files', true);
         }
-
     }
 
     /**
@@ -303,7 +302,7 @@ class entities {
         // Need to make sure that the html passed has charset meta tag.
         $metatag = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />';
         if (strpos($html, $metatag) === false) {
-            $html = '<html><head>'.$metatag.'</head><body>'.$html.'</body></html>';
+            $html = '<html><head>' . $metatag . '</head><body>' . $html . '</body></html>';
         }
 
         $document = new DOMDocument();
@@ -321,7 +320,7 @@ class entities {
         $bodyitems = $domdocument->getElementsByTagName('body');
         if ($bodyitems->length > 0) {
             $body = $bodyitems->item(0);
-            $html = str_ireplace(array('<body>', '</body>'), '', $body->C14N());
+            $html = str_ireplace(['<body>', '</body>'], '', $body->C14N());
         }
 
         return $html;
@@ -333,7 +332,6 @@ class entities {
         $source = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
         if ($length > 0) {
-
             $response = '';
             $source = str_split($source, 1);
 
@@ -357,5 +355,18 @@ class entities {
         $text = $remove_html ? strip_tags($text) : $text;
 
         return $text;
+    }
+
+    protected static function get_imscc_label_icon(): ?array {
+        global $CFG;
+
+        foreach (['files.svg', 'files.gif'] as $filename) {
+            $source = $CFG->dirroot . '/pix/i/' . $filename;
+            if (is_readable($source)) {
+                return ['source' => $source, 'filename' => $filename];
+            }
+        }
+
+        return null;
     }
 }

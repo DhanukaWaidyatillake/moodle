@@ -30,34 +30,51 @@ class cc_label extends entities {
 
         $response = '';
 
-        $sheet_mod_label = cc2moodle::loadsheet(SHEET_COURSE_SECTIONS_SECTION_MODS_MOD_LABEL);
+        $sheetmodlabel = cc2moodle::loadsheet(SHEET_COURSE_SECTIONS_SECTION_MODS_MOD_LABEL);
 
         if (!empty(cc2moodle::$instances['instances'][MOODLE_TYPE_LABEL])) {
             foreach (cc2moodle::$instances['instances'][MOODLE_TYPE_LABEL] as $instance) {
-                $response .= $this->create_node_course_modules_mod_label($sheet_mod_label, $instance);
+                $response .= $this->create_node_course_modules_mod_label($sheetmodlabel, $instance);
             }
         }
 
         return $response;
     }
 
-    private function create_node_course_modules_mod_label($sheet_mod_label, $instance) {
+    /**
+     * Creates a course module label node from the IMSCC instance data.
+     *
+     * @param string $sheetmodlabel Label mod XML template.
+     * @param array $instance IMSCC label instance data.
+     * @return string Generated label mod XML, or empty string if skipped.
+     */
+    private function create_node_course_modules_mod_label($sheetmodlabel, $instance) {
         if ($instance['deep'] <= ROOT_DEEP) {
             return '';
         }
 
-        $find_tags = array('[#mod_instance#]',
-                           '[#mod_name#]',
-                           '[#mod_content#]',
-                           '[#date_now#]');
+        $findtags = [
+            '[#mod_instance#]',
+            '[#mod_name#]',
+            '[#mod_content#]',
+            '[#date_now#]',
+        ];
 
         $title = isset($instance['title']) && !empty($instance['title']) ? $instance['title'] : 'Untitled';
-        $content = "<img src=\"$@FILEPHP@$$@SLASH@$"."files.gif\" alt=\"Folder\" title=\"{$title}\" /> {$title}";
-        $replace_values = array($instance['instance'],
-                                self::safexml($title),
-                                self::safexml($content),
-                                time());
+        $icon = self::get_imscc_label_icon();
+        if ($icon !== null) {
+            $iconref = '$@FILEPHP@$$@SLASH@$' . $icon['filename'];
+            $content = '<img class="icon" src="' . $iconref . '" alt="' . s($title) . '" title="' . s($title) . '" /> ' . s($title);
+        } else {
+            $content = s($title);
+        }
+        $replacevalues = [
+            $instance['instance'],
+            self::safexml($title),
+            self::safexml($content),
+            time(),
+        ];
 
-        return str_replace($find_tags, $replace_values, $sheet_mod_label);
+        return str_replace($findtags, $replacevalues, $sheetmodlabel);
     }
 }
