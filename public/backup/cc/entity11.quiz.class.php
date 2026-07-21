@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -13,6 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * @package   moodlecore
  * @subpackage backup-imscc
@@ -23,8 +25,8 @@
 
 defined('MOODLE_INTERNAL') or die('Direct access to this script is forbidden.');
 
-class cc11_quiz extends entities11 {
-
+class cc11_quiz extends entities11
+{
     public function generate_node_question_categories() {
 
         $instances = $this->generate_instances();
@@ -33,7 +35,6 @@ class cc11_quiz extends entities11 {
         $node_course_question_categories = empty($node_course_question_categories) ? '' : $node_course_question_categories;
 
         return $node_course_question_categories;
-
     }
 
     public function generate_node_course_modules_mod() {
@@ -45,14 +46,13 @@ class cc11_quiz extends entities11 {
 
         if (!empty($instances)) {
             foreach ($instances as $instance) {
-                if ($instance['is_question_bank'] == 0) {
+                if ($instance['isquestionbank'] == 0) {
                     $node_course_modules_mod .= $this->create_node_course_modules_mod($instance);
                 }
             }
         }
 
         return $node_course_modules_mod;
-
     }
 
     private function create_node_course_modules_mod_quiz_feedback() {
@@ -62,7 +62,12 @@ class cc11_quiz extends entities11 {
         return $sheet_question_mod_feedback;
     }
 
-       private function generate_instances() {
+    /**
+     * Builds quiz and question-bank instances from IMS CC assessment resources.
+     *
+     * @return array keyed by type:instance, each entry containing questions, id, title, and options
+     */
+    private function generate_instances() {
 
         $lastquestionid = 0;
         $lastanswerid = 0;
@@ -72,13 +77,11 @@ class cc11_quiz extends entities11 {
         $types = [MOODLE_TYPE_QUIZ, MOODLE_TYPE_QUESTION_BANK];
 
         foreach ($types as $type) {
-
             if (empty(cc112moodle::$instances['instances'][$type])) {
                 continue;
             }
 
             foreach (cc112moodle::$instances['instances'][$type] as $instance) {
-
                 $isquestionbank = ($type == MOODLE_TYPE_QUIZ) ? 0 : 1;
                 $resourceid = $instance['resource_indentifier'];
 
@@ -91,7 +94,7 @@ class cc11_quiz extends entities11 {
                     }
 
                     $assessment = $this->load_xml_resource(
-                        cc112moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $assessmentfile
+                        cc112moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . $assessmentfile
                     );
 
                     if (empty($assessment)) {
@@ -148,7 +151,7 @@ class cc11_quiz extends entities11 {
                     'questions' => $questions,
                     'id' => $instance['instance'],
                     'title' => $instance['title'],
-                    'is_question_bank' => $isquestionbank,
+                    'isquestionbank' => $isquestionbank,
                     'options' => $assessmentcache[$resourceid]['options'],
                 ];
             }
@@ -207,27 +210,31 @@ class cc11_quiz extends entities11 {
         $questions_strings = $this->get_questions_string($instance);
         $quiz_stamp = 'localhost+' . time() . '+' . $this->generate_random_string(6);
 
-        $find_tags = array('[#mod_id#]',
-                           '[#mod_name#]',
-                           '[#mod_intro#]',
-                           '[#mod_stamp#]',
-                           '[#question_string#]',
-                           '[#date_now#]',
-                           '[#mod_max_attempts#]',
-                           '[#mod_timelimit#]',
-                           '[#node_question_instance#]',
-                           '[#node_questions_feedback#]');
+        $find_tags = [
+            '[#mod_id#]',
+            '[#mod_name#]',
+            '[#mod_intro#]',
+            '[#mod_stamp#]',
+            '[#question_string#]',
+            '[#date_now#]',
+            '[#mod_max_attempts#]',
+            '[#mod_timelimit#]',
+            '[#node_question_instance#]',
+            '[#node_questions_feedback#]',
+        ];
 
-        $replace_values = array($instance['id'],
-                                self::safexml($instance['title']),
-                                self::safexml($instance['title']),
-                                self::safexml($quiz_stamp),
-                                self::safexml($questions_strings),
-                                time(),
-                                $instance['options']['max_attempts'],
-                                $instance['options']['timelimit'],
-                                $node_course_modules_quiz_question_instances,
-                                $node_course_modules_quiz_feedback); //this one has tags
+        $replace_values = [
+            $instance['id'],
+            self::safexml($instance['title']),
+            self::safexml($instance['title']),
+            self::safexml($quiz_stamp),
+            self::safexml($questions_strings),
+            time(),
+            $instance['options']['max_attempts'],
+            $instance['options']['timelimit'],
+            $node_course_modules_quiz_question_instances,
+            $node_course_modules_quiz_feedback,
+        ]; // this one has tags
 
         $node_question_mod = str_replace($find_tags, $replace_values, $sheet_question_mod);
 
@@ -267,12 +274,11 @@ class cc11_quiz extends entities11 {
         $node_course_module_mod_quiz_questions_instances = '';
         $sheet_question_mod_instance = cc112moodle::loadsheet(SHEET_COURSE_SECTIONS_SECTION_MODS_MOD_QUIZ_QUESTION_INSTANCE);
 
-        $find_tags = array('[#question_id#]' , '[#instance_id#]');
+        $find_tags = ['[#question_id#]', '[#instance_id#]'];
 
         if (!empty($instance['questions'])) {
-
             foreach ($instance['questions'] as $question) {
-                $replace_values = array($question['id'] , $question['id']);
+                $replace_values = [$question['id'], $question['id']];
                 $node_course_module_mod_quiz_questions_instances .= str_replace($find_tags, $replace_values, $sheet_question_mod_instance);
             }
 
@@ -302,15 +308,14 @@ class cc11_quiz extends entities11 {
         $sheet_question_categories = cc112moodle::loadsheet(SHEET_COURSE_QUESTION_CATEGORIES);
 
         if (!empty($instances)) {
-
             $node_course_question_categories_question_category = '';
 
             foreach ($instances as $instance) {
                 $node_course_question_categories_question_category .= $this->create_node_course_question_categories_question_category($instance);
             }
 
-            $find_tags = array('[#node_course_question_categories_question_category#]');
-            $replace_values = array($node_course_question_categories_question_category);
+            $find_tags = ['[#node_course_question_categories_question_category#]'];
+            $replace_values = [$node_course_question_categories_question_category];
 
             $node_course_question_categories = str_replace($find_tags, $replace_values, $sheet_question_categories);
         }
@@ -324,20 +329,24 @@ class cc11_quiz extends entities11 {
 
         $sheet_question_categories_quetion_category = cc112moodle::loadsheet(SHEET_COURSE_QUESTION_CATEGORIES_QUESTION_CATEGORY);
 
-        $find_tags = array('[#quiz_id#]',
-                           '[#quiz_name#]',
-                           '[#quiz_stamp#]',
-                           '[#node_course_question_categories_question_category_questions#]');
+        $find_tags = [
+            '[#quiz_id#]',
+            '[#quiz_name#]',
+            '[#quiz_stamp#]',
+            '[#node_course_question_categories_question_category_questions#]',
+        ];
 
         $node_course_question_categories_questions = $this->create_node_course_question_categories_question_category_question($instance);
         $node_course_question_categories_questions = empty($node_course_question_categories_questions) ? '' : $node_course_question_categories_questions;
 
         $quiz_stamp = 'localhost+' . time() . '+' . $this->generate_random_string(6);
 
-        $replace_values = array($instance['id'],
-                                self::safexml($instance['title']),
-                                $quiz_stamp,
-                                $node_course_question_categories_questions);
+        $replace_values = [
+            $instance['id'],
+            self::safexml($instance['title']),
+            $quiz_stamp,
+            $node_course_question_categories_questions,
+        ];
 
         $node_question_categories = str_replace($find_tags, $replace_values, $sheet_question_categories_quetion_category);
 
@@ -350,26 +359,26 @@ class cc11_quiz extends entities11 {
 
         $node_course_question_categories_question = '';
 
-        $find_tags = array('[#question_id#]',
-                           '[#question_title#]',
-                           '[#question_text#]',
-                           '[#question_type#]',
-                           '[#question_general_feedback#]',
-                           '[#question_defaultgrade#]',
-                           '[#date_now#]',
-                           '[#question_type_nodes#]',
-                           '[#question_stamp#]',
-                           '[#question_version#]',
-                           '[#logged_user#]');
+        $find_tags = [
+            '[#question_id#]',
+            '[#question_title#]',
+            '[#question_text#]',
+            '[#question_type#]',
+            '[#question_general_feedback#]',
+            '[#question_defaultgrade#]',
+            '[#date_now#]',
+            '[#question_type_nodes#]',
+            '[#question_stamp#]',
+            '[#question_version#]',
+            '[#logged_user#]',
+        ];
 
         $sheet_question_categories_question = cc112moodle::loadsheet(SHEET_COURSE_QUESTION_CATEGORIES_QUESTION_CATEGORY_QUESTION);
 
         $questions = $instance['questions'];
 
         if (!empty($questions)) {
-
             foreach ($questions as $question) {
-
                 $quiz_stamp = 'localhost+' . time() . '+' . $this->generate_random_string(6);
                 $quiz_version = 'localhost+' . time() . '+' . $this->generate_random_string(6);
 
@@ -384,17 +393,19 @@ class cc11_quiz extends entities11 {
                 $question_type_node = ($question_moodle_type == MOODLE_QUIZ_SHORTANSWER) ? $this->create_node_course_question_categories_question_category_question_shortanswer($question) : $question_type_node;
 
                 $questionname = !empty($question['name']) ? self::safexml($question['name']) : self::safexml($this->truncate_text($question['title'], 255, true));
-                $replace_values = array($question['id'],
-                                        $questionname,
-                                        self::safexml($question['title']),
-                                        $question_moodle_type,
-                                        self::safexml($question['feedback']),
-                                        $question['defaultgrade'],
-                                        time(),
-                                        $question_type_node,
-                                        $quiz_stamp,
-                                        $quiz_version,
-                                        $USER->id);
+                $replace_values = [
+                    $question['id'],
+                    $questionname,
+                    self::safexml($question['title']),
+                    $question_moodle_type,
+                    self::safexml($question['feedback']),
+                    $question['defaultgrade'],
+                    time(),
+                    $question_type_node,
+                    $quiz_stamp,
+                    $quiz_version,
+                    $USER->id,
+                ];
 
                 $node_course_question_categories_question .= str_replace($find_tags, $replace_values, $sheet_question_categories_question);
             }
@@ -405,92 +416,88 @@ class cc11_quiz extends entities11 {
         return $node_course_question_categories_question;
     }
 
-    private function get_questions($assessment, &$last_question_id, &$last_answer_id, $root_path, $is_question_bank) {
+    private function get_questions($assessment, &$last_question_id, &$last_answer_id, $root_path, $isquestionbank) {
 
-        $questions = array();
+        $questions = [];
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        if (!$is_question_bank) {
-            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:assessment/xmlns:section/xmlns:item');
+        if (!$isquestionbank) {
+            $questionsitems = $xpath->query('/xmlns:questestinterop/xmlns:assessment/xmlns:section/xmlns:item');
         } else {
-            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:objectbank/xmlns:item');
+            $questionsitems = $xpath->query('/xmlns:questestinterop/xmlns:objectbank/xmlns:item');
         }
 
-        foreach ($questions_items as $question_item) {
-
-            $count_questions = $xpath->evaluate('count(xmlns:presentation/xmlns:flow/xmlns:material/xmlns:mattext)', $question_item);
+        foreach ($questionsitems as $questionitem) {
+            $count_questions = $xpath->evaluate('count(xmlns:presentation/xmlns:flow/xmlns:material/xmlns:mattext)', $questionitem);
 
             if ($count_questions == 0) {
-                $question_title = $xpath->query('xmlns:presentation/xmlns:material/xmlns:mattext', $question_item);
+                $question_title = $xpath->query('xmlns:presentation/xmlns:material/xmlns:mattext', $questionitem);
             } else {
-                $question_title = $xpath->query('xmlns:presentation/xmlns:flow/xmlns:material/xmlns:mattext', $question_item);
+                $question_title = $xpath->query('xmlns:presentation/xmlns:flow/xmlns:material/xmlns:mattext', $questionitem);
             }
 
             $question_title = !empty($question_title->item(0)->nodeValue) ? $question_title->item(0)->nodeValue : '';
 
-            $question_identifier = $xpath->query('@ident', $question_item);
-            $question_identifier = !empty($question_identifier->item(0)->nodeValue) ? $question_identifier->item(0)->nodeValue : '';
+            $questionidentifier = $xpath->query('@ident', $questionitem);
+            $questionidentifier = !empty($questionidentifier->item(0)->nodeValue) ? $questionidentifier->item(0)->nodeValue : '';
 
-            if (!empty($question_identifier)) {
+            if (!empty($questionidentifier)) {
+                $questiontype = $this->get_question_type($questionidentifier, $assessment);
 
-                $question_type = $this->get_question_type($question_identifier, $assessment);
-
-                if (!empty($question_type['moodle'])) {
-
+                if (!empty($questiontype['moodle'])) {
                     $last_question_id++;
 
-                    $questions[$question_identifier]['id'] = $last_question_id;
+                    $questions[$questionidentifier]['id'] = $last_question_id;
 
                     $question_title = $this->update_sources($question_title, $root_path);
                     $question_title = !empty($question_title) ? str_replace("%24", "\$", $this->include_titles($question_title)) : '';
 
                     // This attribute is not IMSCC spec, but it is included in Moodle 2.x export of IMS1.1
-                    $questionname = $xpath->query('@title', $question_item);
+                    $questionname = $xpath->query('@title', $questionitem);
                     $questionname = !empty($questionname->item(0)->nodeValue) ? $questionname->item(0)->nodeValue : '';
 
-                    $questions[$question_identifier]['title'] = $question_title;
-                    $questions[$question_identifier]['name'] = $questionname;
-                    $questions[$question_identifier]['identifier'] = $question_identifier;
-                    $questions[$question_identifier]['moodle_type'] = $question_type['moodle'];
-                    $questions[$question_identifier]['cc_type'] = $question_type['cc'];
-                    $questions[$question_identifier]['feedback'] = $this->get_general_feedback($assessment, $question_identifier);
-                    $questions[$question_identifier]['defaultgrade'] = $this->get_defaultgrade($assessment, $question_identifier);
-                    $questions[$question_identifier]['answers'] = $this->get_answers($question_identifier, $assessment, $last_answer_id);
-
+                    $questions[$questionidentifier]['title'] = $question_title;
+                    $questions[$questionidentifier]['name'] = $questionname;
+                    $questions[$questionidentifier]['identifier'] = $questionidentifier;
+                    $questions[$questionidentifier]['moodle_type'] = $questiontype['moodle'];
+                    $questions[$questionidentifier]['cc_type'] = $questiontype['cc'];
+                    $questions[$questionidentifier]['feedback'] = $this->get_general_feedback($assessment, $questionidentifier);
+                    $questions[$questionidentifier]['defaultgrade'] = $this->get_defaultgrade($assessment, $questionidentifier);
+                    $questions[$questionidentifier]['answers'] = $this->get_answers($questionidentifier, $assessment, $last_answer_id);
                 }
             }
         }
 
-    return $questions;
+        return $questions;
     }
 
     /**
      * Checks whether an assessment contains at least one supported question.
      *
      * @param DOMDocument $assessment assessment XML
-     * @param bool $is_question_bank whether the assessment is a question bank
+     * @param bool $isquestionbank whether the assessment is a question bank
      * @return bool
      */
-    public function has_supported_questions($assessment, $is_question_bank = false) {
+    public function has_supported_questions($assessment, $isquestionbank = false) {
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        if (!$is_question_bank) {
-            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:assessment/xmlns:section/xmlns:item');
+        if (!$isquestionbank) {
+            $questionsitems = $xpath->query('/xmlns:questestinterop/xmlns:assessment/xmlns:section/xmlns:item');
         } else {
-            $questions_items = $xpath->query('/xmlns:questestinterop/xmlns:objectbank/xmlns:item');
+            $questionsitems = $xpath->query('/xmlns:questestinterop/xmlns:objectbank/xmlns:item');
         }
 
-        foreach ($questions_items as $question_item) {
-            $question_identifier = $xpath->query('@ident', $question_item);
-            $question_identifier = !empty($question_identifier->item(0)->nodeValue) ? $question_identifier->item(0)->nodeValue : '';
+        foreach ($questionsitems as $questionitem) {
+            $questionidentifier = $xpath->query('@ident', $questionitem);
+            $questionidentifier = !empty($questionidentifier->item(0)->nodeValue) ? $questionidentifier->item(0)->nodeValue : '';
 
-            if (empty($question_identifier)) {
+            if (empty($questionidentifier)) {
                 continue;
             }
 
-            $question_type = $this->get_question_type($question_identifier, $assessment);
-            if (!empty($question_type['moodle'])) {
+            $questiontype = $this->get_question_type($questionidentifier, $assessment);
+            if (!empty($questiontype['moodle'])) {
                 return true;
             }
         }
@@ -503,21 +510,19 @@ class cc11_quiz extends entities11 {
         $first_char = strpos($subject, $search);
 
         if ($first_char !== false) {
-
             $before_str = substr($subject, 0, $first_char);
             $after_str = substr($subject, $first_char + strlen($search));
 
             return $before_str . $replace . $after_str;
-
         } else {
             return $subject;
         }
     }
 
-    private function get_defaultgrade($assessment, $question_identifier) {
+    private function get_defaultgrade($assessment, $questionidentifier) {
         $result = 1;
         $xpath = cc2moodle::newx_path($assessment, cc2moodle::getquizns());
-        $query = '//xmlns:item[@ident="' . $question_identifier . '"]';
+        $query = '//xmlns:item[@ident="' . $questionidentifier . '"]';
         $query .= '//xmlns:qtimetadatafield[xmlns:fieldlabel="cc_weighting"]/xmlns:fieldentry';
         $defgrade = $xpath->query($query);
         if (!empty($defgrade) && ($defgrade->length > 0)) {
@@ -529,26 +534,22 @@ class cc11_quiz extends entities11 {
         return $result;
     }
 
-    private function get_general_feedback($assessment, $question_identifier) {
+    private function get_general_feedback($assessment, $questionidentifier) {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        $respconditions = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:resprocessing/xmlns:respcondition');
+        $respconditions = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:resprocessing/xmlns:respcondition');
 
         if (!empty($respconditions)) {
-
             foreach ($respconditions as $respcondition) {
-
                 $continue = $respcondition->getAttributeNode('continue');
                 $continue = !empty($continue->nodeValue) ? strtolower($continue->nodeValue) : '';
 
                 if ($continue == 'yes') {
-
                     $display_feedback = $xpath->query('xmlns:displayfeedback', $respcondition);
 
                     if (!empty($display_feedback)) {
                         foreach ($display_feedback as $feedback) {
-
                             $feedback_identifier = $feedback->getAttributeNode('linkrefid');
                             $feedback_identifier = !empty($feedback_identifier->nodeValue) ? $feedback_identifier->nodeValue : '';
 
@@ -566,7 +567,7 @@ class cc11_quiz extends entities11 {
 
         if (!empty($feedbacks_identifiers)) {
             foreach ($feedbacks_identifiers as $feedback_identifier) {
-                $feedbacks = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
+                $feedbacks = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
                 $feedback .= !empty($feedbacks->item(0)->nodeValue) ? $feedbacks->item(0)->nodeValue . ' ' : '';
             }
         }
@@ -574,26 +575,22 @@ class cc11_quiz extends entities11 {
         return $feedback;
     }
 
-    private function get_feedback($assessment, $identifier, $item_identifier, $question_type) {
+    private function get_feedback($assessment, $identifier, $item_identifier, $questiontype) {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
         $resource_processing = $xpath->query('//xmlns:item[@ident="' . $item_identifier . '"]/xmlns:resprocessing/xmlns:respcondition');
 
         if (!empty($resource_processing)) {
-
             foreach ($resource_processing as $response) {
-
                 $varequal = $xpath->query('xmlns:conditionvar/xmlns:varequal', $response);
                 $varequal = !empty($varequal->item(0)->nodeValue) ? $varequal->item(0)->nodeValue : '';
 
-                if (strtolower($varequal) == strtolower($identifier) || ($question_type == CC_QUIZ_ESSAY)) {
-
+                if (strtolower($varequal) == strtolower($identifier) || ($questiontype == CC_QUIZ_ESSAY)) {
                     $display_feedback = $xpath->query('xmlns:displayfeedback', $response);
 
                     if (!empty($display_feedback)) {
                         foreach ($display_feedback as $feedback) {
-
                             $feedback_identifier = $feedback->getAttributeNode('linkrefid');
                             $feedback_identifier = !empty($feedback_identifier->nodeValue) ? $feedback_identifier->nodeValue : '';
 
@@ -619,16 +616,16 @@ class cc11_quiz extends entities11 {
         return $feedback;
     }
 
-    private function get_answers_fib($question_identifier, $identifier, $assessment, &$last_answer_id) {
+    private function get_answers_fib($questionidentifier, $identifier, $assessment, &$last_answer_id) {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        $correctanswersfib = array();
-        $incorrectanswersfib = array();
+        $correctanswersfib = [];
+        $incorrectanswersfib = [];
 
-        $response_items = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:resprocessing/xmlns:respcondition');
+        $response_items = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:resprocessing/xmlns:respcondition');
 
-        $correctrespcond = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:resprocessing/xmlns:respcondition/xmlns:setvar[text()="100"]/..');
+        $correctrespcond = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:resprocessing/xmlns:respcondition/xmlns:setvar[text()="100"]/..');
         $correctanswers = $xpath->query('xmlns:conditionvar/xmlns:varequal', $correctrespcond->item(0));
 
         // Correct answers.
@@ -640,17 +637,17 @@ class cc11_quiz extends entities11 {
 
             $last_answer_id++;
 
-            $correctanswersfib[$answertitle] = array(
+            $correctanswersfib[$answertitle] = [
                 'id' => $last_answer_id,
                 'title' => $answertitle,
                 'score' => 1,
                 'feedback' => '',
-                'case' => 0);
+                'case' => 0,
+            ];
         }
 
         // Handle incorrect answers and feedback for all items.
         foreach ($response_items as $response_item) {
-
             $setvar = $xpath->query('xmlns:setvar', $response_item);
             if (!empty($setvar->length) && $setvar->item(0)->nodeValue == '100') {
                 // Skip the correct answer responsecondition.
@@ -669,9 +666,7 @@ class cc11_quiz extends entities11 {
             unset($feedbacks_identifiers);
 
             if (!empty($display_feedback)) {
-
                 foreach ($display_feedback as $feedback) {
-
                     $feedback_identifier = $feedback->getAttributeNode('linkrefid');
                     $feedback_identifier = !empty($feedback_identifier->nodeValue) ? $feedback_identifier->nodeValue : '';
 
@@ -686,7 +681,7 @@ class cc11_quiz extends entities11 {
 
             if (!empty($feedbacks_identifiers)) {
                 foreach ($feedbacks_identifiers as $feedback_identifier) {
-                    $feedbacks = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
+                    $feedbacks = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
                     $feedback .= !empty($feedbacks->item(0)->nodeValue) ? $feedbacks->item(0)->nodeValue . ' ' : '';
                 }
             }
@@ -697,12 +692,13 @@ class cc11_quiz extends entities11 {
             } else {
                 // Need to add an incorrect answer.
                 $last_answer_id++;
-                $incorrectanswersfib[] = array(
+                $incorrectanswersfib[] = [
                     'id' => $last_answer_id,
                     'title' => $answer_title,
                     'score' => 0,
                     'feedback' => $feedback,
-                    'case' => 0);
+                    'case' => 0,
+                ];
             }
         }
 
@@ -712,21 +708,19 @@ class cc11_quiz extends entities11 {
         return $answers_fib;
     }
 
-    private function get_answers_pattern_match($question_identifier, $identifier, $assessment, &$last_answer_id) {
+    private function get_answers_pattern_match($questionidentifier, $identifier, $assessment, &$last_answer_id) {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        $answers_fib = array();
+        $answers_fib = [];
 
-        $response_items = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:resprocessing/xmlns:respcondition');
+        $response_items = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:resprocessing/xmlns:respcondition');
 
         foreach ($response_items as $response_item) {
-
             $setvar = $xpath->query('xmlns:setvar', $response_item);
             $setvar = is_object($setvar->item(0)) ? $setvar->item(0)->nodeValue : '';
 
             if ($setvar != '') {
-
                 $last_answer_id++;
 
                 $answer_title = $xpath->query('xmlns:conditionvar/xmlns:varequal[@respident="' . $identifier . '"]', $response_item);
@@ -741,20 +735,17 @@ class cc11_quiz extends entities11 {
                     $answer_title = '*';
                 }
 
-            $case = $xpath->query('xmlns:conditionvar/xmlns:varequal/@case', $response_item);
-            $case = is_object($case->item(0)) ? $case->item(0)->nodeValue : 'no'
-                                    ;
-            $case = strtolower($case) == 'yes' ? 1 :
-                            0;
+                $case = $xpath->query('xmlns:conditionvar/xmlns:varequal/@case', $response_item);
+                $case = is_object($case->item(0)) ? $case->item(0)->nodeValue : 'no';
+                $case = strtolower($case) == 'yes' ? 1 :
+                    0;
 
                 $display_feedback = $xpath->query('xmlns:displayfeedback', $response_item);
 
                 unset($feedbacks_identifiers);
 
                 if (!empty($display_feedback)) {
-
                     foreach ($display_feedback as $feedback) {
-
                         $feedback_identifier = $feedback->getAttributeNode('linkrefid');
                         $feedback_identifier = !empty($feedback_identifier->nodeValue) ? $feedback_identifier->nodeValue : '';
 
@@ -769,16 +760,18 @@ class cc11_quiz extends entities11 {
 
                 if (!empty($feedbacks_identifiers)) {
                     foreach ($feedbacks_identifiers as $feedback_identifier) {
-                        $feedbacks = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
+                        $feedbacks = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:itemfeedback[@ident="' . $feedback_identifier . '"]/xmlns:flow_mat/xmlns:material/xmlns:mattext');
                         $feedback .= !empty($feedbacks->item(0)->nodeValue) ? $feedbacks->item(0)->nodeValue . ' ' : '';
                     }
                 }
 
-                $answers_fib[] = array('id' => $last_answer_id,
-                                       'title' => $answer_title,
-                                       'score' => $setvar,
-                                       'feedback' => $feedback,
-                                       'case' => $case);
+                $answers_fib[] = [
+                    'id' => $last_answer_id,
+                    'title' => $answer_title,
+                    'score' => $setvar,
+                    'feedback' => $feedback,
+                    'case' => $case,
+                ];
             }
         }
 
@@ -792,14 +785,13 @@ class cc11_quiz extends entities11 {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        $answers = array();
+        $answers = [];
 
         $question_cc_type = $this->get_question_type($identifier, $assessment);
         $question_cc_type = $question_cc_type['cc'];
         $is_multiresponse = ($question_cc_type == CC_QUIZ_MULTIPLE_RESPONSE);
 
         if ($question_cc_type == CC_QUIZ_MULTIPLE_CHOICE || $is_multiresponse || $question_cc_type == CC_QUIZ_TRUE_FALSE) {
-
             $query_answers = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:response_lid/xmlns:render_choice/xmlns:response_label';
             $query_answers_with_flow = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:flow/xmlns:response_lid/xmlns:render_choice/xmlns:response_label';
 
@@ -808,7 +800,6 @@ class cc11_quiz extends entities11 {
         }
 
         if ($question_cc_type == CC_QUIZ_ESSAY) {
-
             $query_answers = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:response_str';
             $query_answers_with_flow = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:flow/xmlns:response_str';
 
@@ -817,7 +808,6 @@ class cc11_quiz extends entities11 {
         }
 
         if ($question_cc_type == CC_QUIZ_FIB || $question_cc_type == CC_QUIZ_PATTERN_MACHT) {
-
             $xpath_query = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:response_str/@ident';
             $xpath_query_with_flow = '//xmlns:item[@ident="' . $identifier . '"]/xmlns:presentation/xmlns:flow/xmlns:response_str/@ident';
 
@@ -832,13 +822,11 @@ class cc11_quiz extends entities11 {
             $answer_identifier = !empty($answer_identifier->item(0)->nodeValue) ? $answer_identifier->item(0)->nodeValue : '';
 
             if ($question_cc_type == CC_QUIZ_FIB) {
-                $answers = $this->get_answers_fib ($identifier, $answer_identifier, $assessment, $last_answer_id);
+                $answers = $this->get_answers_fib($identifier, $answer_identifier, $assessment, $last_answer_id);
             } else {
-                $answers = $this->get_answers_pattern_match ($identifier, $answer_identifier, $assessment, $last_answer_id);
+                $answers = $this->get_answers_pattern_match($identifier, $answer_identifier, $assessment, $last_answer_id);
             }
-
         } else {
-
             $count_response = $xpath->evaluate('count(' . $query_answers_with_flow . ')');
 
             if ($count_response == 0) {
@@ -848,15 +836,14 @@ class cc11_quiz extends entities11 {
             }
 
             if (!empty($response_items)) {
-
                 if ($is_multiresponse) {
                     $correct_answer_score = 0;
-                    //get the correct answers count
+                    // get the correct answers count
                     $canswers_query = "//xmlns:item[@ident='{$identifier}']//xmlns:setvar[@varname='SCORE'][.=100]/../xmlns:conditionvar//xmlns:varequal[@case='Yes'][not(parent::xmlns:not)]";
                     $canswers = $xpath->query($canswers_query);
                     if ($canswers->length > 0) {
-                        $correct_answer_score = round(1.0 / (float)$canswers->length, 7); //weird
-                        $correct_answers_ident = array();
+                        $correct_answer_score = round(1.0 / (float)$canswers->length, 7); // weird
+                        $correct_answers_ident = [];
                         foreach ($canswers as $cnode) {
                             $correct_answers_ident[$cnode->nodeValue] = true;
                         }
@@ -864,7 +851,6 @@ class cc11_quiz extends entities11 {
                 }
 
                 foreach ($response_items as $response_item) {
-
                     $last_answer_id++;
 
                     $answer_identifier = $xpath->query($query_indentifer, $response_item);
@@ -881,11 +867,13 @@ class cc11_quiz extends entities11 {
                         $answer_score = $correct_answer_score;
                     }
 
-                    $answers[] = array('id' => $last_answer_id,
-                                       'title' => $answer_title,
-                                       'score' => $answer_score,
-                                       'identifier' => $answer_identifier,
-                                       'feedback' => $answer_feedback);
+                    $answers[] = [
+                        'id' => $last_answer_id,
+                        'title' => $answer_title,
+                        'score' => $answer_score,
+                        'identifier' => $answer_identifier,
+                        'feedback' => $answer_feedback,
+                    ];
                 }
             }
         }
@@ -893,20 +881,17 @@ class cc11_quiz extends entities11 {
         $answers = empty($answers) ? '' : $answers;
 
         return $answers;
-
     }
 
-    private function get_score($assessment, $identifier, $question_identifier) {
+    private function get_score($assessment, $identifier, $questionidentifier) {
 
         $xpath = cc112moodle::newx_path($assessment, cc112moodle::getquizns());
 
-        $resource_processing = $xpath->query('//xmlns:item[@ident="' . $question_identifier . '"]/xmlns:resprocessing/xmlns:respcondition');
+        $resource_processing = $xpath->query('//xmlns:item[@ident="' . $questionidentifier . '"]/xmlns:resprocessing/xmlns:respcondition');
 
         if (!empty($resource_processing)) {
-
             foreach ($resource_processing as $response) {
-
-                $question_cc_type = $this->get_question_type($question_identifier, $assessment);
+                $question_cc_type = $this->get_question_type($questionidentifier, $assessment);
                 $question_cc_type = $question_cc_type['cc'];
 
                 $varequal = $xpath->query('xmlns:conditionvar/xmlns:varequal', $response);
@@ -940,13 +925,17 @@ class cc11_quiz extends entities11 {
 
         $is_single = ($question['cc_type'] == CC_QUIZ_MULTIPLE_CHOICE) ? 1 : 0;
 
-        $find_tags = array('[#node_course_question_categories_question_category_question_answer#]',
-                           '[#answer_string#]',
-                           '[#is_single#]');
+        $find_tags = [
+            '[#node_course_question_categories_question_category_question_answer#]',
+            '[#answer_string#]',
+            '[#is_single#]',
+        ];
 
-        $replace_values = array($node_course_question_categories_question_answer,
-                                self::safexml($answer_string),
-                                $is_single);
+        $replace_values = [
+            $node_course_question_categories_question_answer,
+            self::safexml($answer_string),
+            $is_single,
+        ];
 
         $node_question_categories_question = str_replace($find_tags, $replace_values, $sheet_question_categories_question);
 
@@ -965,15 +954,16 @@ class cc11_quiz extends entities11 {
             }
         }
 
-        $find_tags = array('[#node_course_question_categories_question_category_question_answer#]');
-        $replace_values = array($node_course_question_categories_question_answer);
+        $find_tags = ['[#node_course_question_categories_question_category_question_answer#]'];
+        $replace_values = [$node_course_question_categories_question_answer];
 
         $node_question_categories_question = str_replace($find_tags, $replace_values, $sheet_question_categories_question);
 
         return $node_question_categories_question;
     }
 
-    private function create_node_course_question_categories_question_category_question_shortanswer($question) { //, &$fib_questions) {
+    private function create_node_course_question_categories_question_category_question_shortanswer($question) {
+        // , &$fib_questions) {
 
         $sheet_question_categories_question = cc112moodle::loadsheet(SHEET_COURSE_QUESTION_CATEGORIES_QUESTION_CATEGORY_QUESTION_SHORTANSWER);
         $node_course_question_categories_question_answer = '';
@@ -989,27 +979,26 @@ class cc11_quiz extends entities11 {
         $use_case = 0;
 
         foreach ($question['answers'] as $answer) {
-
             if ($answer['case'] == 1) {
                 $use_case = 1;
             }
-
         }
 
-        $find_tags = array('[#answers_string#]',
-                           '[#use_case#]',
-                           '[#node_course_question_categories_question_category_question_answer#]');
+        $find_tags = [
+            '[#answers_string#]',
+            '[#use_case#]',
+            '[#node_course_question_categories_question_category_question_answer#]',
+        ];
 
-        $replace_values = array(self::safexml($answers_string),
-                                self::safexml($use_case),
-                                $node_course_question_categories_question_answer);
-
-
+        $replace_values = [
+            self::safexml($answers_string),
+            self::safexml($use_case),
+            $node_course_question_categories_question_answer,
+        ];
 
         $node_question_categories_question = str_replace($find_tags, $replace_values, $sheet_question_categories_question);
 
         return $node_question_categories_question;
-
     }
 
     private function create_node_course_question_categories_question_category_question_true_false($question) {
@@ -1022,7 +1011,6 @@ class cc11_quiz extends entities11 {
         $falseanswer = null;
 
         if (!empty($question['answers'])) {
-
             // Identify the true and false answers.
             foreach ($question['answers'] as $answer) {
                 $answeridentifier = $this->get_true_false_answer_identifier($answer);
@@ -1033,7 +1021,7 @@ class cc11_quiz extends entities11 {
                 } else {
                     // Should not happen, but just in case.
                     throw new coding_exception("Unknown answer identifier detected " .
-                            "in true/false quiz question with id {$question['id']}.");
+                        "in true/false quiz question with id {$question['id']}.");
                 }
 
                 $node_course_question_categories_question_answer .= $this->create_node_course_question_categories_question_category_question_answer($answer);
@@ -1042,17 +1030,21 @@ class cc11_quiz extends entities11 {
             // Make sure the true and false answer was found.
             if (is_null($trueanswer) || is_null($falseanswer)) {
                 throw new coding_exception("Unable to correctly identify the " .
-                        "true and false answers in the question with id {$question['id']}.");
+                    "true and false answers in the question with id {$question['id']}.");
             }
         }
 
-        $find_tags = array('[#node_course_question_categories_question_category_question_answer#]',
-                           '[#true_answer_id#]',
-                           '[#false_answer_id#]');
+        $find_tags = [
+            '[#node_course_question_categories_question_category_question_answer#]',
+            '[#true_answer_id#]',
+            '[#false_answer_id#]',
+        ];
 
-        $replace_values = array($node_course_question_categories_question_answer,
-                                $trueanswer['id'],
-                                $falseanswer['id']);
+        $replace_values = [
+            $node_course_question_categories_question_answer,
+            $trueanswer['id'],
+            $falseanswer['id'],
+        ];
 
         $node_question_categories_question = str_replace($find_tags, $replace_values, $sheet_question_categories_question);
 
@@ -1097,22 +1089,25 @@ class cc11_quiz extends entities11 {
         $answer_string = !empty($answer_string) ? substr($answer_string, 0, strlen($answer_string) - 1) : '';
 
         return $answer_string;
-
     }
 
     private function create_node_course_question_categories_question_category_question_answer($answer) {
 
         $sheet_question_categories_question_answer = cc112moodle::loadsheet(SHEET_COURSE_QUESTION_CATEGORIES_QUESTION_CATEGORY_QUESTION_ANSWER);
 
-        $find_tags = array('[#answer_id#]',
-                           '[#answer_text#]',
-                           '[#answer_score#]',
-                           '[#answer_feedback#]');
+        $find_tags = [
+            '[#answer_id#]',
+            '[#answer_text#]',
+            '[#answer_score#]',
+            '[#answer_feedback#]',
+        ];
 
-        $replace_values = array($answer['id'],
-                                self::safexml($answer['title']),
-                                $answer['score'],
-                                self::safexml($answer['feedback']));
+        $replace_values = [
+            $answer['id'],
+            self::safexml($answer['title']),
+            $answer['score'],
+            self::safexml($answer['feedback']),
+        ];
 
         $node_question_categories_question_answer = str_replace($find_tags, $replace_values, $sheet_question_categories_question_answer);
 
@@ -1126,7 +1121,6 @@ class cc11_quiz extends entities11 {
         $metadata = $xpath->query('//xmlns:item[@ident="' . $identifier . '"]/xmlns:itemmetadata/xmlns:qtimetadata/xmlns:qtimetadatafield');
 
         foreach ($metadata as $field) {
-
             $field_label = $xpath->query('xmlns:fieldlabel', $field);
             $field_label = !empty($field_label->item(0)->nodeValue) ? $field_label->item(0)->nodeValue : '';
 
@@ -1136,7 +1130,7 @@ class cc11_quiz extends entities11 {
             }
         }
 
-        $return_type = array();
+        $return_type = [];
 
         $return_type['moodle'] = '';
         $return_type['cc'] = $type;
@@ -1161,6 +1155,5 @@ class cc11_quiz extends entities11 {
         }
 
         return $return_type;
-
     }
 }

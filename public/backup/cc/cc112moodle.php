@@ -1,5 +1,5 @@
 <?php
-
+// phpcs:ignoreFile
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,6 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * @package   moodlecore
  * @subpackage backup-imscc
@@ -38,22 +39,22 @@ class cc112moodle extends cc2moodle {
     const CC_TYPE_ASSOCIATED_CONTENT = 'associatedcontent/imscc_xmlv1p1/learning-application-resource';
     const CC_TYPE_BASICLTI           = 'imsbasiclti_xmlv1p0';
 
-    public static $namespaces = array('imscc'    => 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1',
+    public static $namespaces = ['imscc'    => 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1',
                                       'lomimscc' => 'http://ltsc.ieee.org/xsd/imsccv1p1/LOM/manifest',
                                       'lom'      => 'http://ltsc.ieee.org/xsd/imsccv1p1/LOM/resource',
                                       'xsi'      => 'http://www.w3.org/2001/XMLSchema-instance',
-                                      'cc'       => 'http://www.imsglobal.org/xsd/imsccv1p1/imsccauth_v1p1');
+                                      'cc'       => 'http://www.imsglobal.org/xsd/imsccv1p1/imsccauth_v1p1'];
 
-    public static $restypes = array('associatedcontent/imscc_xmlv1p1/learning-application-resource', 'webcontent');
-    public static $forumns  = array('dt' => 'http://www.imsglobal.org/xsd/imsccv1p1/imsdt_v1p1');
-    public static $quizns   = array('xmlns' => 'http://www.imsglobal.org/xsd/ims_qtiasiv1p2');
-    public static $resourcens = array('wl' => 'http://www.imsglobal.org/xsd/imsccv1p1/imswl_v1p1');
-    public static $basicltins = array(
+    public static $restypes = ['associatedcontent/imscc_xmlv1p1/learning-application-resource', 'webcontent'];
+    public static $forumns  = ['dt' => 'http://www.imsglobal.org/xsd/imsccv1p1/imsdt_v1p1'];
+    public static $quizns   = ['xmlns' => 'http://www.imsglobal.org/xsd/ims_qtiasiv1p2'];
+    public static $resourcens = ['wl' => 'http://www.imsglobal.org/xsd/imsccv1p1/imswl_v1p1'];
+    public static $basicltins = [
                                        'xmlns' => 'http://www.imsglobal.org/xsd/imslticc_v1p0',
                                        'blti'  => 'http://www.imsglobal.org/xsd/imsbasiclti_v1p0',
                                        'lticm' => 'http://www.imsglobal.org/xsd/imslticm_v1p0',
-                                       'lticp' => 'http://www.imsglobal.org/xsd/imslticp_v1p0'
-                                      );
+                                       'lticp' => 'http://www.imsglobal.org/xsd/imslticp_v1p0',
+                                      ];
 
 
     public function __construct($path_to_manifest) {
@@ -64,7 +65,7 @@ class cc112moodle extends cc2moodle {
 
         global $CFG;
         entities11::reset_file_path_map();
-        $cdir = static::$path_to_manifest_folder . DIRECTORY_SEPARATOR . 'course_files';
+        $cdir = static::$pathtomanifestfolder . DIRECTORY_SEPARATOR . 'course_files';
 
         if (!file_exists($cdir)) {
             mkdir($cdir, $CFG->directorypermissions, true);
@@ -99,23 +100,23 @@ class cc112moodle extends cc2moodle {
 
         $www_root = $CFG->wwwroot;
 
-        $find_tags = array('[#zip_filename#]',
+        $find_tags = ['[#zip_filename#]',
                                '[#www_root#]',
                                '[#node_course_header#]',
                                '[#node_info_details_mod#]',
                                '[#node_course_blocks_block#]',
                                '[#node_course_sections_section#]',
                                '[#node_course_question_categories#]',
-                               '[#node_course_modules#]');
+                               '[#node_course_modules#]'];
 
-        $replace_values = array($filename,
+        $replace_values = [$filename,
         $www_root,
         $node_course_header,
         $node_info_details_mod,
         $node_course_blocks_block,
         $node_course_sections_section,
         $node_course_question_categories,
-        $node_course_modules_mod);
+        $node_course_modules_mod];
 
         $result_xml = str_replace($find_tags, $replace_values, $sheet_base);
 
@@ -123,20 +124,17 @@ class cc112moodle extends cc2moodle {
         $entities->move_all_files();
 
         if (array_key_exists("index", self::$instances)) {
-
-            if (!file_put_contents(static::$path_to_manifest_folder . DIRECTORY_SEPARATOR . 'moodle.xml', $result_xml)) {
-                static::log_action('Cannot save the moodle manifest file: ' . static::$path_to_manifest_folder . DIRECTORY_SEPARATOR . 'moodle.xml', true);
+            if (!file_put_contents(static::$pathtomanifestfolder . DIRECTORY_SEPARATOR . 'moodle.xml', $result_xml)) {
+                static::log_action('Cannot save the moodle manifest file: ' . static::$pathtomanifestfolder . DIRECTORY_SEPARATOR . 'moodle.xml', true);
             } else {
                 $status = true;
             }
-
         } else {
             $status = false;
             static::log_action('The course is empty', false);
         }
 
         return $status;
-
     }
 
     public function convert_to_moodle_type($cc_type) {
@@ -180,11 +178,11 @@ class cc112moodle extends cc2moodle {
     }
 
     /**
-    * (non-PHPdoc)
-    * @see cc2moodle::get_module_visible()
-    */
+     * (non-PHPdoc)
+     * @see cc2moodle::get_module_visible()
+     */
     protected function get_module_visible($identifier) {
-        //Should item be hidden or not
+        // Should item be hidden or not
         $mod_visible = 1;
         if (!empty($identifier)) {
             $xpath = static::newx_path(static::$manifest, static::$namespaces);
@@ -231,10 +229,10 @@ class cc112moodle extends cc2moodle {
         // QUIZ
         $node_course_modules_mod_quiz = $quiz->generate_node_course_modules_mod();
 
-        //BasicLTI
+        // BasicLTI
         $node_course_modules_mod_basiclti = $basiclti->generate_node();
 
-        $node_course_modules = $node_course_modules_mod_label.
+        $node_course_modules = $node_course_modules_mod_label .
                                $node_course_modules_mod_resource .
                                $node_course_modules_mod_forum .
                                $node_course_modules_mod_quiz .
@@ -242,5 +240,4 @@ class cc112moodle extends cc2moodle {
 
         return $node_course_modules;
     }
-
 }

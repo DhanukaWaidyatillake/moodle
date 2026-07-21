@@ -89,12 +89,12 @@ class cc11_basiclti extends entities11 {
 
         $topic_data = array();
 
-        $basiclti_file = $this->get_external_xml($instance['resource_indentifier']);
+        $basicltifile = $this->get_external_xml($instance['resource_indentifier']);
 
-        if (!empty($basiclti_file)) {
-            $basiclti_file_path = cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $basiclti_file;
-            $basiclti_file_dir = dirname($basiclti_file_path);
-            $basiclti = $this->load_xml_resource($basiclti_file_path);
+        if (!empty($basicltifile)) {
+            $basicltifilepath = cc2moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . $basicltifile;
+            $basicltifiledir = dirname($basicltifilepath);
+            $basiclti = $this->load_xml_resource($basicltifilepath);
             if (!empty($basiclti)) {
                 $xpath = cc2moodle::newx_path($basiclti, cc112moodle::$basicltins);
                 $topic_title = $this->getValue($xpath->query('/xmlns:cartridge_basiclti_link/blti:title'),'Untitled');

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_backup;
+namespace core;
 
 use convert_factory;
 use convert_helper;
@@ -30,14 +30,17 @@ require_once($CFG->dirroot . '/backup/converter/imscc11/lib.php');
 /**
  * Unit tests for the IMS Common Cartridge 1.1 converter.
  *
- * @package    core_backup
- * @subpackage backup-convert
+ * @package    core
  * @category   test
  * @copyright  2026 A K M Safat Shahin <safat.shahin@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \imscc11_converter
+ * @covers     \cc112moodle
+ * @covers     \cc11_quiz
+ * @covers     \entities11
  */
-final class imscc11_converter_test extends \advanced_testcase {
-
+final class imscc11_converter_test extends \advanced_testcase
+{
     /** @var string the name of the directory containing the unpacked IMS CC backup */
     protected $tempdir;
 
@@ -101,23 +104,23 @@ final class imscc11_converter_test extends \advanced_testcase {
 
     public function test_true_false_answers_can_use_non_literal_identifiers(): void {
         $question = [
-            'id' => 1,
-            'answers' => [
-                [
-                    'id' => 1,
-                    'identifier' => '1327',
-                    'title' => 'True',
-                    'score' => '1.0000000',
-                    'feedback' => '',
-                ],
-                [
-                    'id' => 2,
-                    'identifier' => '5033',
-                    'title' => 'False',
-                    'score' => '0.0000000',
-                    'feedback' => '',
-                ],
-            ],
+        'id' => 1,
+        'answers' => [
+        [
+          'id' => 1,
+          'identifier' => '1327',
+          'title' => 'True',
+          'score' => '1.0000000',
+          'feedback' => '',
+        ],
+        [
+          'id' => 2,
+          'identifier' => '5033',
+          'title' => 'False',
+          'score' => '0.0000000',
+          'feedback' => '',
+        ],
+        ],
         ];
 
         $xml = $this->create_true_false_question_node($question);
@@ -128,23 +131,23 @@ final class imscc11_converter_test extends \advanced_testcase {
 
     public function test_true_false_answers_still_reject_unknown_identifiers(): void {
         $question = [
-            'id' => 1,
-            'answers' => [
-                [
-                    'id' => 1,
-                    'identifier' => '1327',
-                    'title' => 'Yes',
-                    'score' => '1.0000000',
-                    'feedback' => '',
-                ],
-                [
-                    'id' => 2,
-                    'identifier' => '5033',
-                    'title' => 'No',
-                    'score' => '0.0000000',
-                    'feedback' => '',
-                ],
-            ],
+        'id' => 1,
+        'answers' => [
+        [
+          'id' => 1,
+          'identifier' => '1327',
+          'title' => 'Yes',
+          'score' => '1.0000000',
+          'feedback' => '',
+        ],
+        [
+          'id' => 2,
+          'identifier' => '5033',
+          'title' => 'No',
+          'score' => '0.0000000',
+          'feedback' => '',
+        ],
+        ],
         ];
 
         $this->expectException(\coding_exception::class);
@@ -164,8 +167,10 @@ final class imscc11_converter_test extends \advanced_testcase {
         $manifest = $this->tempdirpath . '/imsmanifest.xml';
         $assessmentfile = 'quiz.xml';
         $this->write_manifest_with_quiz_resource($manifest, $assessmentfile);
-        file_put_contents($this->tempdirpath . '/' . $assessmentfile,
-            $this->create_assessment_xml_string('cc.multiple_dropdown'));
+        file_put_contents(
+            $this->tempdirpath . '/' . $assessmentfile,
+            $this->create_assessment_xml_string('cc.multiple_dropdown')
+        );
 
         new \cc112moodle($manifest);
 
@@ -196,7 +201,7 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->assertFileDoesNotExist($this->tempdirpath . '/course_files/' . $filename);
 
         $html = '<p><img src="' . $filename . '" /><a href="' . $collidingfilename . '">Collision</a>'
-            . '<a href="' . $ampersandfilename . '">File</a></p>';
+        . '<a href="' . $ampersandfilename . '">File</a></p>';
         $html = $entities->update_sources($html);
 
         $this->assertStringContainsString('$@FILEPHP@$/' . $safefilename, $html);
@@ -204,7 +209,7 @@ final class imscc11_converter_test extends \advanced_testcase {
         $this->assertStringContainsString('$@FILEPHP@$/' . $safeampersandfilename, $html);
     }
 
-        public function test_unsupported_lti_v1p3_resources_are_removed_for_canvas_exports(): void {
+    public function test_unsupported_lti_v1p3_resources_are_removed_for_canvas_exports(): void {
         global $CFG;
 
         $manifest = $this->tempdirpath . '/imsmanifest.xml';
@@ -229,7 +234,8 @@ final class imscc11_converter_test extends \advanced_testcase {
         $xmldoc->load($manifest);
         $xpath = new \DOMXPath($xmldoc);
         $xpath->registerNamespace('imscc', 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1');
-        $this->assertEquals(0, $xpath->evaluate('count(/imscc:manifest/imscc:resources/imscc:resource[@type="imsbasiclti_xmlv1p3"])'));
+        $ltiresourcecount = 'count(/imscc:manifest/imscc:resources/imscc:resource[@type="imsbasiclti_xmlv1p3"])';
+        $this->assertEquals(0, $xpath->evaluate($ltiresourcecount));
     }
 
     public function test_unsupported_lti_v1p3_outline_items_are_removed(): void {
@@ -247,7 +253,8 @@ final class imscc11_converter_test extends \advanced_testcase {
         $xmldoc->load($manifest);
         $xpath = new \DOMXPath($xmldoc);
         $xpath->registerNamespace('imscc', 'http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1');
-        $this->assertEquals(0, $xpath->evaluate('count(/imscc:manifest/imscc:organizations/imscc:organization//imscc:item[@identifierref="lti1"])'));
+        $outlineitemcount = 'count(/imscc:manifest/imscc:organizations/imscc:organization//imscc:item[@identifierref="lti1"])';
+        $this->assertEquals(0, $xpath->evaluate($outlineitemcount));
     }
 
     public function test_unsupported_lti_resources_without_export_marker_are_not_changed(): void {
@@ -267,12 +274,12 @@ final class imscc11_converter_test extends \advanced_testcase {
         $method->setAccessible(true);
 
         $source = [[
-            'id' => 1,
-            'title' => 'Question 1',
-            'answers' => [
-                ['id' => 10, 'title' => 'True'],
-                ['id' => 11, 'title' => 'False'],
-            ],
+        'id' => 1,
+        'title' => 'Question 1',
+        'answers' => [
+        ['id' => 10, 'title' => 'True'],
+        ['id' => 11, 'title' => 'False'],
+        ],
         ]];
 
         $lastquestionid = 1;
@@ -296,7 +303,7 @@ final class imscc11_converter_test extends \advanced_testcase {
         check_dir_exists($this->tempdirpath . '/quiz1');
         file_put_contents($this->tempdirpath . '/' . $assessmentfile, $this->create_true_false_assessment_xml_string());
 
-        \cc112moodle::$path_to_manifest_folder = $this->tempdirpath;
+        \cc112moodle::$pathtomanifestfolder = $this->tempdirpath;
         new \cc112moodle($manifest);
 
         $quizinstances = \cc112moodle::$instances['instances'][MOODLE_TYPE_QUIZ] ?? [];
@@ -315,7 +322,7 @@ final class imscc11_converter_test extends \advanced_testcase {
         try {
             $instances = $method->invoke($quiz);
             $modxml = (new \ReflectionMethod(\cc11_quiz::class, 'generate_node_course_modules_mod'))
-                ->invoke($quiz);
+            ->invoke($quiz);
         } finally {
             chdir($currentdir);
         }
@@ -339,10 +346,12 @@ final class imscc11_converter_test extends \advanced_testcase {
         global $CFG;
 
         $quiz = new \cc11_quiz();
-        $method = new \ReflectionMethod(\cc11_quiz::class,
-            'create_node_course_question_categories_question_category_question_true_false');
+        $method = new \ReflectionMethod(
+            \cc11_quiz::class,
+            'create_node_course_question_categories_question_category_question_true_false'
+        );
 
-        \cc112moodle::$path_to_manifest_folder = $this->tempdirpath;
+        \cc112moodle::$pathtomanifestfolder = $this->tempdirpath;
         $currentdir = getcwd();
         chdir($CFG->dirroot . '/backup');
         try {
@@ -557,7 +566,7 @@ XML;
         file_put_contents($this->tempdirpath . '/imsmanifest.xml', $content);
     }
 
-        /**
+    /**
      * Writes a manifest containing an invalid LTI 1.3 resource.
      *
      * @param string $manifest manifest path

@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - https://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Provides Common Cartridge v1.1 converter class
@@ -9,14 +23,18 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once($CFG->dirroot.'/backup/converter/convertlib.php');
-require_once($CFG->dirroot.'/backup/cc/includes/constants.php');
-require_once($CFG->dirroot.'/backup/cc/cc112moodle.php');
-require_once($CFG->dirroot.'/backup/cc/validator.php');
+defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot . '/backup/converter/convertlib.php');
+require_once($CFG->dirroot . '/backup/cc/includes/constants.php');
+require_once($CFG->dirroot . '/backup/cc/cc112moodle.php');
+require_once($CFG->dirroot . '/backup/cc/validator.php');
 
-class imscc11_converter extends base_converter {
-
+/**
+ * Converter of IMS Common Cartridge 1.1 backups into Moodle backup format.
+ */
+class imscc11_converter extends base_converter
+{
     /**
      * Log a message
      *
@@ -28,7 +46,7 @@ class imscc11_converter extends base_converter {
      * @param bool $display whether the message should be sent to the output, too
      */
     public function log($message, $level, $a = null, $depth = null, $display = false) {
-        parent::log('(imscc1) '.$message, $level, $a, $depth, $display);
+        parent::log('(imscc1) ' . $message, $level, $a, $depth, $display);
     }
 
     /**
@@ -46,18 +64,18 @@ class imscc11_converter extends base_converter {
         if (file_exists($manifest)) {
             // Looks promising, lets load some information.
             $handle = fopen($manifest, 'r');
-            $xml_snippet = fread($handle, 1024);
+            $xmlsnippet = fread($handle, 1024);
             fclose($handle);
 
             // Check if it has the required strings.
 
-            $xml_snippet = strtolower($xml_snippet);
-            $xml_snippet = preg_replace('/\s*/m', '', $xml_snippet);
-            $xml_snippet = str_replace("'", '', $xml_snippet);
-            $xml_snippet = str_replace('"', '', $xml_snippet);
+            $xmlsnippet = strtolower($xmlsnippet);
+            $xmlsnippet = preg_replace('/\s*/m', '', $xmlsnippet);
+            $xmlsnippet = str_replace("'", '', $xmlsnippet);
+            $xmlsnippet = str_replace('"', '', $xmlsnippet);
 
-            $search_string = "xmlns=http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1";
-            if (strpos($xml_snippet, $search_string) !== false) {
+            $searchstring = "xmlns=http://www.imsglobal.org/xsd/imsccv1p1/imscp_v1p1";
+            if (strpos($xmlsnippet, $searchstring) !== false) {
                 return backup::FORMAT_IMSCC11;
             }
         }
@@ -76,13 +94,16 @@ class imscc11_converter extends base_converter {
      */
     public static function description() {
 
-        return array(
-                'from'  => backup::FORMAT_IMSCC11,
-                'to'    => backup::FORMAT_MOODLE1,
-                'cost'  => 10
-        );
+        return [
+            'from'  => backup::FORMAT_IMSCC11,
+            'to'    => backup::FORMAT_MOODLE1,
+            'cost'  => 10,
+        ];
     }
 
+    /**
+     * Executes the conversion.
+     */
     protected function execute() {
         global $CFG;
 
@@ -100,11 +121,11 @@ class imscc11_converter extends base_converter {
                 $this->log('normalised resource metadata', backup::LOG_DEBUG, null, 1);
                 error_messages::instance()->reset();
                 if (!$validator->validate($manifest)) {
-                    $this->log('validation error(s): '.PHP_EOL.error_messages::instance(), backup::LOG_DEBUG, null, 2);
+                    $this->log('validation error(s): ' . PHP_EOL . error_messages::instance(), backup::LOG_DEBUG, null, 2);
                     throw new imscc11_convert_exception(error_messages::instance()->to_string(true));
                 }
             } else {
-                $this->log('validation error(s): '.PHP_EOL.$validationerrors, backup::LOG_DEBUG, null, 2);
+                $this->log('validation error(s): ' . PHP_EOL . $validationerrors, backup::LOG_DEBUG, null, 2);
                 throw new imscc11_convert_exception($validationerrors);
             }
         }
@@ -115,21 +136,21 @@ class imscc11_converter extends base_converter {
         }
         $status = $cc112moodle->generate_moodle_xml();
         // Final cleanup.
-        $xml_error = new libxml_errors_mgr(true);
+        $xmlerror = new libxml_errors_mgr(true);
         $mdoc = new DOMDocument();
         $mdoc->preserveWhiteSpace = false;
         $mdoc->formatOutput = true;
         $mdoc->validateOnParse = false;
         $mdoc->strictErrorChecking = false;
-        if ($mdoc->load($manifestdir.'/moodle.xml', LIBXML_NONET)) {
-            $mdoc->save($this->get_workdir_path().'/moodle.xml', LIBXML_NOEMPTYTAG);
+        if ($mdoc->load($manifestdir . '/moodle.xml', LIBXML_NONET)) {
+            $mdoc->save($this->get_workdir_path() . '/moodle.xml', LIBXML_NOEMPTYTAG);
         } else {
-            $xml_error->collect();
-            $this->log('validation error(s): '.PHP_EOL.error_messages::instance(), backup::LOG_DEBUG, null, 2);
+            $xmlerror->collect();
+            $this->log('validation error(s): ' . PHP_EOL . error_messages::instance(), backup::LOG_DEBUG, null, 2);
             throw new imscc11_convert_exception(error_messages::instance()->to_string(true));
         }
         // Move the files to the workdir.
-        rename($manifestdir.'/course_files', $this->get_workdir_path().'/course_files');
+        rename($manifestdir . '/course_files', $this->get_workdir_path() . '/course_files');
     }
 
     /**
@@ -173,7 +194,7 @@ class imscc11_converter extends base_converter {
             }
             $lomnode = $lomnodes->item(0);
 
-            $children = array();
+            $children = [];
             foreach ($lomnode->childNodes as $child) {
                 if ($child->nodeType === XML_ELEMENT_NODE) {
                     $children[] = $child;
@@ -199,11 +220,12 @@ class imscc11_converter extends base_converter {
 
         return $changed;
     }
-
 }
 
+// phpcs:disable PSR1.Classes.ClassDeclaration.MultipleClasses
 /**
- * Exception thrown by this converter
+ * Exception thrown by this converter.
  */
 class imscc11_convert_exception extends convert_exception {
 }
+// phpcs:enable PSR1.Classes.ClassDeclaration.MultipleClasses

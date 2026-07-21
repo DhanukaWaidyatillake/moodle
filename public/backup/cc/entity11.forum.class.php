@@ -111,52 +111,54 @@ class cc11_forum extends entities11 {
 
     public function get_topic_data($instance) {
 
-        $topic_data = array();
+        $topicdata = [];
 
-        $topic_file = $this->get_external_xml($instance['resource_indentifier']);
+        $topicfile = $this->get_external_xml($instance['resource_indentifier']);
 
-        if (!empty($topic_file)) {
-
-            $topic_file_path = cc2moodle::$path_to_manifest_folder . DIRECTORY_SEPARATOR . $topic_file;
-            $topic_file_dir = dirname($topic_file_path);
-            $topic = $this->load_xml_resource($topic_file_path);
+        if (!empty($topicfile)) {
+            $topicfilepath = cc2moodle::$pathtomanifestfolder . DIRECTORY_SEPARATOR . $topicfile;
+            $topicfiledir = dirname($topicfilepath);
+            $topic = $this->load_xml_resource($topicfilepath);
 
             if (!empty($topic)) {
 
                 $xpath = cc2moodle::newx_path($topic, cc112moodle::$forumns);
 
-                $topic_title = $xpath->query('/dt:topic/dt:title');
-                if ($topic_title->length > 0 && !empty($topic_title->item(0)->nodeValue)) {
-                    $topic_title = $topic_title->item(0)->nodeValue;
+                $topictitle = $xpath->query('/dt:topic/dt:title');
+                if ($topictitle->length > 0 && !empty($topictitle->item(0)->nodeValue)) {
+                    $topictitle = $topictitle->item(0)->nodeValue;
                 } else {
-                    $topic_title = 'Untitled Topic';
+                    $topictitle = 'Untitled Topic';
                 }
 
-                $topic_text = $xpath->query('/dt:topic/dt:text');
-                $topic_text = !empty($topic_text->item(0)->nodeValue) ? $this->update_sources($topic_text->item(0)->nodeValue, dirname($topic_file)) : '';
-                $topic_text = !empty($topic_text) ? str_replace("%24", "\$", $this->include_titles($topic_text)) : '';
+                $topictext = $xpath->query('/dt:topic/dt:text');
+                $topictext = !empty($topictext->item(0)->nodeValue)
+                    ? $this->update_sources($topictext->item(0)->nodeValue, dirname($topicfile))
+                    : '';
+                $topictext = !empty($topictext) ? str_replace("%24", "\$", $this->include_titles($topictext)) : '';
 
-                if (!empty($topic_title)) {
-                    $topic_data['title'] = $topic_title;
-                    $topic_data['description'] = $topic_text;
+                if (!empty($topictitle)) {
+                    $topicdata['title'] = $topictitle;
+                    $topicdata['description'] = $topictext;
                 }
             }
 
-            $topic_attachments = $xpath->query('/dt:topic/dt:attachments/dt:attachment/@href');
+            $topicattachments = $xpath->query('/dt:topic/dt:attachments/dt:attachment/@href');
 
-            if ($topic_attachments->length > 0) {
+            if ($topicattachments->length > 0) {
+                $attachmenthtml = '';
 
-                $attachment_html = '';
-
-                foreach ($topic_attachments as $file) {
-                    $attachment_html .= $this->generate_attachment_html($this->full_path($file->nodeValue,'/'));
+                foreach ($topicattachments as $file) {
+                    $attachmenthtml .= $this->generate_attachment_html($this->full_path($file->nodeValue, '/'));
                 }
 
-                $topic_data['description'] = !empty($attachment_html) ? $topic_text . '<p>Attachments:</p>' . $attachment_html : $topic_text;
+                $topicdata['description'] = !empty($attachmenthtml)
+                    ? $topictext . '<p>Attachments:</p>' . $attachmenthtml
+                    : $topictext;
             }
         }
 
-        return $topic_data;
+        return $topicdata;
     }
 
     private function generate_attachment_html($filename) {
