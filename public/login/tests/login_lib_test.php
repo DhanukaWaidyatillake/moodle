@@ -473,6 +473,7 @@ final class login_lib_test extends \advanced_testcase {
     /**
      * Test for core_login_show_panel().
      *
+     * @covers ::core_login_show_panel
      * @dataProvider core_login_show_panel_provider
      * @param string|null $configvalue The value to store in config, or null to leave unset.
      * @param bool $expected Whether the login panel should be shown.
