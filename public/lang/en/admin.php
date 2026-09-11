@@ -1782,6 +1782,8 @@ $string['cachesession'] = 'Session cache';
 $string['cachesessionhelp'] = 'User specific cache that expires when the user\'s session ends. Designed to alleviate session bloat/strain.';
 $string['cacheapplication'] = 'Application cache';
 $string['cacheapplicationhelp'] = 'Cached items are shared among all users and expire by a determined time to live (ttl).';
+$string['showloginpanel'] = 'Show login page information panel';
+$string['showloginpanel_desc'] = 'When enabled, a panel is shown beside the login form on larger screens. If no custom instructions are provided, the default welcome message is displayed. Disable this setting to hide the panel entirely.';
 
 // Deprecated since Moodle 4.5.
 $string['registration_help'] = 'By registering:
