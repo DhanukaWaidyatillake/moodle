@@ -36,6 +36,7 @@ $templatecontext = [
     'sitename' => format_string($SITE->shortname, true, ['context' => context_course::instance(SITEID), "escape" => false]),
     'output' => $OUTPUT,
     'bodyattributes' => $bodyattributes,
+    'showloginpanel' => core_login_show_panel(),
     'leftinstructions' => $leftinstructions,
 ];
 
