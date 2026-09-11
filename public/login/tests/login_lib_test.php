@@ -447,5 +447,44 @@ final class login_lib_test extends \advanced_testcase {
         // Restore the original email address validator.
         \moodle_phpmailer::$validator = $defaultvalidator;
     }
+    
+    /**
+     * Data provider for {@see test_core_login_show_panel()}.
+     *
+     * @return array
+     */
+    public static function core_login_show_panel_provider(): array {
+        return [
+            'Unset config defaults to enabled' => [
+                null,
+                true,
+            ],
+            'Explicitly enabled' => [
+                '1',
+                true,
+            ],
+            'Explicitly disabled' => [
+                '0',
+                false,
+            ],
+        ];
+    }
 
+    /**
+     * Test for core_login_show_panel().
+     *
+     * @dataProvider core_login_show_panel_provider
+     * @param string|null $configvalue The value to store in config, or null to leave unset.
+     * @param bool $expected Whether the login panel should be shown.
+     */
+    public function test_core_login_show_panel(?string $configvalue, bool $expected): void {
+        $this->resetAfterTest();
+
+        unset_config('showloginpanel');
+        if ($configvalue !== null) {
+            set_config('showloginpanel', $configvalue);
+        }
+
+        $this->assertSame($expected, core_login_show_panel());
+    }
 }

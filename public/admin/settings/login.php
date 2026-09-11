@@ -88,6 +88,14 @@ if ($hassiteconfig) {
         PARAM_URL
     ));
 
+    // Show the login page information panel (left panel on desktop).
+    $temp->add(new admin_setting_configcheckbox(
+        'showloginpanel',
+        new lang_string('showloginpanel', 'admin'),
+        new lang_string('showloginpanel_desc', 'admin'),
+        1
+    ));
+
     // Instructions shown on the login page.
     $temp->add(new admin_setting_confightmleditor(
         'auth_instructions',
