@@ -2337,5 +2337,14 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2026090300.01);
     }
 
+    if ($oldversion < 2026042002.04) {
+        // For existing sites, show login panel by default to maintain current behavior.
+        if (get_config('core', 'showloginpanel') === false) {
+            set_config('showloginpanel', 1);
+        }
+
+        upgrade_main_savepoint(true, 2026042002.04);
+    }
+
     return true;
 }

@@ -627,3 +627,14 @@ function core_login_post_signup_requests($data) {
         }
     }
 }
+
+/**
+ * Whether the login page information panel should be displayed.
+ *
+ * @return bool
+ */
+function core_login_show_panel(): bool {
+    $show = get_config('core', 'showloginpanel');
+    // Default to true when the setting has never been saved.
+    return $show === false || (bool) $show;
+}

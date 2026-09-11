@@ -44,17 +44,42 @@ Feature: Test if the login form provides the correct feedback
     And "//link[@rel='shortcut icon' and contains(@href, '/2.jpg')]" "xpath_element" should exist
 
   Scenario: Default welcome section is shown when no custom instructions are set
-    Given I am on homepage
+    Given the following config values are set as admin:
+      | showloginpanel | 1 |
+    And I change the viewport size to "large"
+    And I am on homepage
     Then I should see "Welcome to Moodle"
     And I should see "You're part of a global learning community"
+    And "//div[contains(@class, 'login-layout-left-content')]" "xpath_element" should exist
 
   Scenario: Add a custom welcome message
     Given the following config values are set as admin:
+      | showloginpanel    | 1 |
       | auth_instructions | Lorem ipsum dolor sit amet |
+    And I change the viewport size to "large"
     And I am on homepage
     Then I should see "Lorem ipsum dolor sit amet"
     And I should not see "Welcome to Moodle"
     And I should not see "You're part of a global learning community"
+
+  Scenario: Login page information panel is hidden when disabled  
+    Given the following config values are set as admin:
+      | showloginpanel | 0 |
+    And I change the viewport size to "large"
+    And I am on homepage
+    Then I should not see "Welcome to Moodle"
+    And I should not see "You're part of a global learning community"
+    And "//aside[contains(@class, 'login-layout-left')]" "xpath_element" should exist
+    And "//div[contains(@class, 'login-layout-left-content')]" "xpath_element" should not exist
+
+  Scenario: Custom login instructions are hidden when the information panel is disabled
+    Given the following config values are set as admin:
+      | showloginpanel    | 0 |
+      | auth_instructions | Lorem ipsum dolor sit amet |
+    And I change the viewport size to "large"
+    And I am on homepage
+    Then I should not see "Lorem ipsum dolor sit amet"
+    And "//div[contains(@class, 'login-layout-left-content')]" "xpath_element" should not exist
 
   @javascript @accessibility
   Scenario: Show the maintenance mode message
