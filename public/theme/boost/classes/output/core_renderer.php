@@ -274,7 +274,7 @@ class core_renderer extends \core_renderer {
             true,
             ['context' => context_course::instance(SITEID), 'escape' => false]
         );
-        $context->hasauthinstructions = !empty($CFG->auth_instructions);
+        $context->hasauthinstructions = core_login_has_auth_instructions();
 
         return $this->render_from_template('core/loginform', $context);
     }
