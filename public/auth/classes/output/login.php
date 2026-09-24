@@ -24,11 +24,16 @@
 
 namespace core_auth\output;
 
+defined('MOODLE_INTERNAL') || die();
+
 use help_icon;
 use moodle_url;
 use renderable;
 use stdClass;
 use templatable;
+
+global $CFG;
+require_once($CFG->dirroot . '/login/lib.php');
 
 /**
  * Login renderable class.
@@ -123,7 +128,7 @@ class login implements renderable, templatable {
         $this->signupurl = new moodle_url('/login/signup.php');
 
         // Authentication instructions.
-        $this->instructions = $CFG->auth_instructions;
+        $this->instructions = core_login_show_panel() ? ($CFG->auth_instructions ?? '') : '';
         if (\core\di::get(\core\authentication::class)->is_enabled('none')) {
             $this->instructions = get_string('loginstepsnone');
         } else if ($CFG->registerauth == 'email' && empty($this->instructions)) {
@@ -297,7 +302,7 @@ class login implements renderable, templatable {
             ['context' => \core\context\course::instance(SITEID), 'escape' => false]
         );
 
-        $data->hasauthinstructions = !empty($CFG->auth_instructions);
+        $data->hasauthinstructions = core_login_has_auth_instructions();
 
         return $data;
     }

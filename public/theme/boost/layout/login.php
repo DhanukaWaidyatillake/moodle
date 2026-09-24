@@ -26,11 +26,12 @@ defined('MOODLE_INTERNAL') || die();
 
 $bodyattributes = $OUTPUT->body_attributes();
 
-// Left-panel instructions. Only set when the admin has defined custom instructions;
+// Left-panel instructions. Only set when the panel is enabled and custom instructions exist;
 // the template falls back to the default welcome content when this is empty/null.
-$leftinstructions = !empty($CFG->auth_instructions)
-    ? format_text($CFG->auth_instructions, FORMAT_MOODLE, ['context' => context_system::instance()])
-    : null;
+$leftinstructions = null;
+if (core_login_has_auth_instructions()) {
+    $leftinstructions = format_text($CFG->auth_instructions, FORMAT_MOODLE, ['context' => context_system::instance()]);
+}
 
 $templatecontext = [
     'sitename' => format_string($SITE->shortname, true, ['context' => context_course::instance(SITEID), "escape" => false]),
