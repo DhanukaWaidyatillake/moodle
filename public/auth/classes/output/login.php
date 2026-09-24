@@ -97,6 +97,8 @@ class login implements renderable, templatable {
     public function __construct(array $authsequence, $username = '') {
         global $CFG, $PAGE;
 
+        require_once($CFG->dirroot . '/login/lib.php');
+
         $this->username = $username;
 
         $languagedata = new \core\output\language_menu($PAGE);
@@ -123,7 +125,7 @@ class login implements renderable, templatable {
         $this->signupurl = new moodle_url('/login/signup.php');
 
         // Authentication instructions.
-        $this->instructions = $CFG->auth_instructions;
+        $this->instructions = core_login_show_panel() ? ($CFG->auth_instructions ?? '') : '';
         if (\core\di::get(\core\authentication::class)->is_enabled('none')) {
             $this->instructions = get_string('loginstepsnone');
         } else if ($CFG->registerauth == 'email' && empty($this->instructions)) {
@@ -297,7 +299,7 @@ class login implements renderable, templatable {
             ['context' => \core\context\course::instance(SITEID), 'escape' => false]
         );
 
-        $data->hasauthinstructions = !empty($CFG->auth_instructions);
+        $data->hasauthinstructions = core_login_has_auth_instructions();
 
         return $data;
     }

@@ -488,4 +488,57 @@ final class login_lib_test extends \advanced_testcase {
 
         $this->assertSame($expected, core_login_show_panel());
     }
+
+    /**
+     * Data provider for {@see test_core_login_has_auth_instructions()}.
+     *
+     * @return array
+     */
+    public static function core_login_has_auth_instructions_provider(): array {
+        return [
+            'Panel disabled with custom instructions' => [
+                '0',
+                'Custom login instructions',
+                false,
+            ],
+            'Panel enabled with no custom instructions' => [
+                '1',
+                '',
+                false,
+            ],
+            'Panel enabled with custom instructions' => [
+                '1',
+                'Custom login instructions',
+                true,
+            ],
+            'Unset panel with no custom instructions' => [
+                null,
+                '',
+                false,
+            ],
+        ];
+    }
+
+    /**
+     * Test for core_login_has_auth_instructions().
+     *
+     * @covers ::core_login_has_auth_instructions
+     * @dataProvider core_login_has_auth_instructions_provider
+     * @param string|null $configvalue The value to store in config, or null to leave unset.
+     * @param string $instructions The custom authentication instructions to configure.
+     * @param bool $expected Whether custom login instructions should be shown.
+     */
+    public function test_core_login_has_auth_instructions(?string $configvalue, string $instructions, bool $expected): void {
+        global $CFG;
+
+        $this->resetAfterTest();
+
+        unset_config('showloginpanel');
+        if ($configvalue !== null) {
+            set_config('showloginpanel', $configvalue);
+        }
+        $CFG->auth_instructions = $instructions;
+
+        $this->assertSame($expected, core_login_has_auth_instructions());
+    }
 }

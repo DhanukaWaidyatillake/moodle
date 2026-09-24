@@ -244,6 +244,10 @@
 
 ### Added
 
+- A new admin setting `showloginpanel` controls whether the login page information panel is displayed. When disabled, neither the default welcome content nor custom `auth_instructions` are shown on desktop or mobile. Existing sites are upgraded with this setting enabled to preserve current behaviour.
+
+  For more information see [MDL-89102](https://tracker.moodle.org/browse/MDL-89102)
+
 - Appending an exclamation mark to template names ignores theme overrides
 
   For more information see [MDL-77894](https://tracker.moodle.org/browse/MDL-77894)
