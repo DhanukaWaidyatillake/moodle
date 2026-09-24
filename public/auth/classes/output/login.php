@@ -112,7 +112,8 @@ class login implements renderable, templatable {
         $this->signupurl = new moodle_url('/login/signup.php');
 
         // Authentication instructions.
-        $this->instructions = $CFG->auth_instructions;
+        $showloginpanel = !isset($CFG->showloginpanel) || !empty($CFG->showloginpanel);
+        $this->instructions = $showloginpanel ? ($CFG->auth_instructions ?? '') : '';
         if (is_enabled_auth('none')) {
             $this->instructions = get_string('loginstepsnone');
         } else if ($CFG->registerauth == 'email' && empty($this->instructions)) {

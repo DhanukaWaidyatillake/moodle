@@ -81,6 +81,49 @@ Feature: Test if the login form provides the correct feedback
     Then I should not see "Lorem ipsum dolor sit amet"
     And "//div[contains(@class, 'login-layout-left-content')]" "xpath_element" should not exist
 
+  Scenario: Custom login instructions are shown on mobile when the information panel is enabled
+    Given the following config values are set as admin:
+      | showloginpanel    | 1 |
+      | auth_instructions | Mobile welcome text |
+    And I change the viewport size to "mobile"
+    And I am on homepage
+    Then I should see "Mobile welcome text"
+
+  Scenario: Custom login instructions are hidden on mobile when the information panel is disabled
+    Given the following config values are set as admin:
+      | showloginpanel    | 0 |
+      | auth_instructions | Mobile welcome text |
+    And I change the viewport size to "mobile"
+    And I am on homepage
+    Then I should not see "Mobile welcome text"
+
+  Scenario: Toggle show login panel in the admin UI
+    Given the following config values are set as admin:
+      | showloginpanel | 1 |
+    And I log in as "admin"
+    And I navigate to "Login > Login settings" in site administration
+    And I set the field "Show login page information panel" to "0"
+    And I press "Save changes"
+    And I log out
+    And I change the viewport size to "large"
+    And I am on homepage
+    Then I should not see "Welcome to Moodle"
+    And "//aside[contains(@class, 'login-layout-left')]" "xpath_element" should exist
+    And "//div[contains(@class, 'login-layout-left-content')]" "xpath_element" should not exist
+
+  Scenario: Instructions field visibility follows the show login panel setting
+    Given the following config values are set as admin:
+      | showloginpanel | 1 |
+    And I log in as "admin"
+    And I navigate to "Login > Login settings" in site administration
+    And "Instructions" "field" should be visible
+    When I set the field "Show login page information panel" to "0"
+    And I wait until the page is ready
+    Then "Instructions" "field" should not be visible
+    When I set the field "Show login page information panel" to "1"
+    And I wait until the page is ready
+    Then "Instructions" "field" should be visible
+
   @javascript @accessibility
   Scenario: Show the maintenance mode message
     Given the following config values are set as admin:

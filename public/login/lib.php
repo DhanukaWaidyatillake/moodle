@@ -632,3 +632,16 @@ function core_login_show_panel(): bool {
     // Default to true when the setting has never been saved.
     return $show === false || (bool) $show;
 }
+
+/**
+ * Whether custom auth instructions should be displayed on the login page.
+ *
+ * Custom instructions are shown in the desktop information panel and below the login form on mobile.
+ *
+ * @return bool
+ */
+function core_login_has_auth_instructions(): bool {
+    global $CFG;
+
+    return core_login_show_panel() && !empty($CFG->auth_instructions);
+}

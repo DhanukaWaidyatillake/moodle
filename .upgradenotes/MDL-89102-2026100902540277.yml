@@ -1,0 +1,10 @@
+issueNumber: MDL-89102
+notes:
+  core:
+    - message: >-
+        A new admin setting `showloginpanel` controls whether the login page
+        information panel is displayed. When disabled, neither the default
+        welcome content nor custom `auth_instructions` are shown on desktop or
+        mobile. Existing sites are upgraded with this setting enabled to
+        preserve current behaviour.
+      type: improved
