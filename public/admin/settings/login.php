@@ -159,5 +159,7 @@ if ($hassiteconfig) {
         ],
     ));
 
+    $temp->hide_if('auth_instructions', 'showloginpanel');
+
     $ADMIN->add('login', $temp);
 }

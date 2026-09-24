@@ -123,7 +123,8 @@ class login implements renderable, templatable {
         $this->signupurl = new moodle_url('/login/signup.php');
 
         // Authentication instructions.
-        $this->instructions = $CFG->auth_instructions;
+        $showloginpanel = !isset($CFG->showloginpanel) || !empty($CFG->showloginpanel);
+        $this->instructions = $showloginpanel ? ($CFG->auth_instructions ?? '') : '';
         if (\core\di::get(\core\authentication::class)->is_enabled('none')) {
             $this->instructions = get_string('loginstepsnone');
         } else if ($CFG->registerauth == 'email' && empty($this->instructions)) {
@@ -297,7 +298,8 @@ class login implements renderable, templatable {
             ['context' => \core\context\course::instance(SITEID), 'escape' => false]
         );
 
-        $data->hasauthinstructions = !empty($CFG->auth_instructions);
+        $showloginpanel = !isset($CFG->showloginpanel) || !empty($CFG->showloginpanel);
+        $data->hasauthinstructions = $showloginpanel && !empty($CFG->auth_instructions);
 
         return $data;
     }
